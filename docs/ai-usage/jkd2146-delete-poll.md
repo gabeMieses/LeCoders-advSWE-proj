@@ -29,17 +29,6 @@ Task: issue #5, `DELETE /polls/{pollId}`, merged in PR #18.
    - the cast ballot fix kept in a separate commit so the endpoint's owner could review it
 5. **PR.** Claude drafted the PR description. Gabe reviewed and approved PR #18 before it was merged.
 
-## Prompts
-
-These are the main prompts I gave Claude:
-
-1. *(with the assignment screenshots and the proposal PDF attached)* "Here is the current project, I don't want you to write code yet, but look at our current status and if you can, check for the task assigned to me on git and let's plan what to do"
-2. "there was a new commit, look at it first"
-3. "Yeah let's begin the implementation for what was assigned to me please, also remember that I do not want you to allocate yourself as a contributor on here. Let's try and have this into separate commits"
-4. "Alright let's go ahead and continue on"
-5. "what should be my PR description"
-6. "is my part done? I also need to document as to how I used AI ..."
-
 ## AI-generated code
 
 All code and tests from this task were AI-generated and then reviewed by me. Each one is marked in the source with a comment or Javadoc line: "AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon."
@@ -68,5 +57,3 @@ Counted from Claude Code's session log. It covers the whole session: planning, i
 | Cache write | 224,150 |
 | Cache read | 3,233,729 |
 | **Total** | **3,487,930** |
-
-Model calls: 31, all on Claude Opus 5.5. Most of the total is cache reads: on every call the model re-reads the conversation so far, and that reread is billed at a lower cache rate.
