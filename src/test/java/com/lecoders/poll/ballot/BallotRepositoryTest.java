@@ -59,4 +59,29 @@ class BallotRepositoryTest {
 
         assertThat(saved.id()).isEqualTo(1L);
     }
+
+    @Test
+    void deleteByPollId_removesOnlyThatPollsBallots() {
+        ballots.saveIfFirstVote(new Ballot(null, 1, "v1", List.of(0)));
+        ballots.saveIfFirstVote(new Ballot(null, 1, "v2", List.of(1)));
+        ballots.saveIfFirstVote(new Ballot(null, 2, "v1", List.of(0)));
+
+        assertThat(ballots.deleteByPollId(1)).isEqualTo(2);
+        // Poll 2's ballot is still recorded, so v1 still cannot vote on it again.
+        assertThat(ballots.saveIfFirstVote(new Ballot(null, 2, "v1", List.of(1)))).isEmpty();
+    }
+
+    @Test
+    void deleteByPollId_forgetsVotersOfThatPoll() {
+        ballots.saveIfFirstVote(new Ballot(null, 1, "v1", List.of(0)));
+
+        ballots.deleteByPollId(1);
+
+        assertThat(ballots.saveIfFirstVote(new Ballot(null, 1, "v1", List.of(0)))).isPresent();
+    }
+
+    @Test
+    void deleteByPollId_pollWithNoBallots_returnsZero() {
+        assertThat(ballots.deleteByPollId(7)).isZero();
+    }
 }

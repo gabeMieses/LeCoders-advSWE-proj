@@ -46,4 +46,27 @@ class PollRepositoryTest {
 
         assertThat(saved.id()).isEqualTo(42L);
     }
+
+    @Test
+    void deleteById_existingPoll_removesItAndReturnsTrue() {
+        Poll saved = polls.save(newPoll("Q?"));
+
+        assertThat(polls.deleteById(saved.id())).isTrue();
+        assertThat(polls.findById(saved.id())).isEmpty();
+    }
+
+    @Test
+    void deleteById_unknownPoll_returnsFalse() {
+        assertThat(polls.deleteById(99L)).isFalse();
+    }
+
+    @Test
+    void deleteById_leavesOtherPollsInPlace() {
+        Poll kept = polls.save(newPoll("Kept?"));
+        Poll deleted = polls.save(newPoll("Deleted?"));
+
+        polls.deleteById(deleted.id());
+
+        assertThat(polls.findById(kept.id())).isPresent();
+    }
 }

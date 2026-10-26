@@ -39,4 +39,14 @@ public class PollRepository {
     public Optional<Poll> findById(long id) {
         return Optional.ofNullable(polls.get(id));
     }
+
+    /**
+     * Removes a poll.
+     *
+     * @param id the poll id
+     * @return true if a poll with that id existed and was removed
+     */
+    public boolean deleteById(long id) {
+        return polls.remove(id) != null;
+    }
 }
