@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.IntStream;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
+ * Shared key validation and returned zero-based option IDs.
  * REST endpoints for creating polls, casting ballots, counting results and deleting polls.
  */
 @RestController
@@ -39,9 +38,7 @@ public class PollController {
 
     private final PollRepository polls;
     private final BallotRepository ballots;
-
-    @Value("${poll.api-keys}")
-    private Set<String> validApiKeys;
+    private final ApiKeyValidator apiKeys;
 
     /**
      * Creates the controller.
@@ -49,9 +46,11 @@ public class PollController {
      * @param polls repository used to store and look up polls
      * @param ballots repository used to store ballots
      */
-    public PollController(PollRepository polls, BallotRepository ballots) {
+    public PollController(
+            PollRepository polls, BallotRepository ballots, ApiKeyValidator apiKeys) {
         this.polls = polls;
         this.ballots = ballots;
+        this.apiKeys = apiKeys;
     }
 
     /**
@@ -59,29 +58,27 @@ public class PollController {
      *
      * @param apiKey API key of the client program
      * @param request the poll's question, options and counting method
-     * @return the new poll's id and option ids (zero-based positions in the options list)
+     * @return the new poll's id and zero-based option ids
      */
     @PostMapping("/polls")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> createPoll(
             @RequestHeader(value = "X-API-Key", required = false) String apiKey,
             @RequestBody CreatePollRequest request) {
-        requireValidApiKey(apiKey);
-        List<String> options = request.options();
+        apiKeys.requireValid(apiKey);
         if (isBlank(request.question())
-                || options == null || options.size() < 2
-                || options.stream().anyMatch(PollController::isBlank)
-                || new HashSet<>(options).size() != options.size()
+                || request.options() == null || request.options().size() < 2
                 || isBlank(request.countingMethod())
-                || !COUNTING_METHODS.contains(request.countingMethod())) {
+                || !COUNTING_METHODS.contains(request.countingMethod())
+                || new HashSet<>(request.options()).size() != request.options().size()
+                || request.options().stream().anyMatch(PollController::isBlank)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "question, at least 2 distinct non-blank options, and a counting_method of "
                             + COUNTING_METHODS + " are required");
         }
         Poll poll = polls.save(new Poll(
-                null, request.question(), options, apiKey, request.countingMethod()));
-        return Map.of("poll_id", poll.id(),
-                "option_ids", IntStream.range(0, options.size()).boxed().toList());
+                null, request.question(), request.options(), apiKey, request.countingMethod()));
+        return Map.of("poll_id", poll.id(), "option_ids", poll.optionIds());
     }
 
     /**
@@ -99,7 +96,7 @@ public class PollController {
             @RequestHeader(value = "X-API-Key", required = false) String apiKey,
             @PathVariable long pollId,
             @RequestBody CastBallotRequest request) {
-        requireValidApiKey(apiKey);
+        apiKeys.requireValid(apiKey);
         Poll poll = polls.findById(pollId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "unknown poll_id " + pollId));
@@ -130,7 +127,7 @@ public class PollController {
     public Map<String, Object> deletePoll(
             @RequestHeader(value = "X-API-Key", required = false) String apiKey,
             @PathVariable long pollId) {
-        requireValidApiKey(apiKey);
+        apiKeys.requireValid(apiKey);
         Poll poll = polls.findById(pollId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "unknown poll_id " + pollId));
@@ -143,20 +140,6 @@ public class PollController {
         polls.deleteById(pollId);
         int ballotsDeleted = ballots.deleteByPollId(pollId);
         return Map.of("poll_id", pollId, "ballots_deleted", ballotsDeleted);
-    }
-
-    /**
-     * Rejects the request with 401 unless the API key is one the service accepts.
-     *
-     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
-     *
-     * @param apiKey API key from the request header, possibly null
-     */
-    private void requireValidApiKey(String apiKey) {
-        if (apiKey == null || !validApiKeys.contains(apiKey)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "missing or unknown API key");
-        }
     }
 
     private static void validateRanking(List<Integer> rankedOptionIds, int optionCount) {

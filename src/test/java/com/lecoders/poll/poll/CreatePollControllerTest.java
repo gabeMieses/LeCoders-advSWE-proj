@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.lecoders.poll.ApiKeyValidator;
 import com.lecoders.poll.BallotRepository;
 import com.lecoders.poll.PollController;
 import com.lecoders.poll.PollRepository;
@@ -17,7 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(PollController.class)
-@Import({PollRepository.class, BallotRepository.class})
+// AI-assisted integration: import the shared key validator used by all endpoints.
+@Import({PollRepository.class, BallotRepository.class, ApiKeyValidator.class})
 class CreatePollControllerTest {
 
     private static final String VALID_POLL = """

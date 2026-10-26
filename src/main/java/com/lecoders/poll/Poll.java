@@ -1,6 +1,7 @@
 package com.lecoders.poll;
 
 import java.util.List;
+import java.util.stream.LongStream;
 
 /**
  * A poll created by a client program.
@@ -13,4 +14,14 @@ import java.util.List;
  */
 public record Poll(
         Long id, String question, List<String> options, String apiKey, String countingMethod) {
+
+    /** Protects the zero-based option positions used by ballot POST. */
+    public Poll {
+        options = List.copyOf(options);
+    }
+
+    /** Matches the team's zero-based option IDs, 0 through N-1. */
+    public List<Long> optionIds() {
+        return LongStream.range(0, options.size()).boxed().toList();
+    }
 }

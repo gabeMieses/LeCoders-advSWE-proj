@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.lecoders.poll.ApiKeyValidator;
 import com.lecoders.poll.BallotRepository;
 import com.lecoders.poll.Poll;
 import com.lecoders.poll.PollController;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -32,6 +34,8 @@ import org.springframework.test.web.servlet.ResultActions;
  * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
  */
 @WebMvcTest(PollController.class)
+// AI-assisted integration: use the shared API key validator.
+@Import(ApiKeyValidator.class)
 class DeletePollControllerTest {
 
     private static final long POLL_ID = 5L;

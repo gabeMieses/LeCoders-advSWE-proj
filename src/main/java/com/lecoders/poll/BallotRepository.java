@@ -1,5 +1,7 @@
 package com.lecoders.poll;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -23,7 +25,7 @@ public class BallotRepository {
      * @param ballot the ballot to save; its id is ignored
      * @return the saved ballot with its id set, or empty if the voter already voted
      */
-    public Optional<Ballot> saveIfFirstVote(Ballot ballot) {
+    public synchronized Optional<Ballot> saveIfFirstVote(Ballot ballot) {
         if (!voted.add(voteKey(ballot.pollId(), ballot.voterId()))) {
             return Optional.empty();
         }
@@ -41,7 +43,7 @@ public class BallotRepository {
      * @param pollId id of the poll whose ballots are removed
      * @return the number of ballots removed
      */
-    public int deleteByPollId(long pollId) {
+    public synchronized int deleteByPollId(long pollId) {
         int removed = 0;
         for (Ballot ballot : ballots.values()) {
             if (ballot.pollId() == pollId && ballots.remove(ballot.id(), ballot)) {
@@ -50,6 +52,12 @@ public class BallotRepository {
             }
         }
         return removed;
+    }
+
+    /** Atomically snapshots the same ballots accepted by POST. */
+    public synchronized List<Ballot> findByPollId(long pollId) {
+        return ballots.values().stream().filter(ballot -> ballot.pollId() == pollId)
+                .sorted(Comparator.comparing(Ballot::id)).toList();
     }
 
     // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.

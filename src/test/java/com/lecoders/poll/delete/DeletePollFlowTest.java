@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import com.lecoders.poll.ApiKeyValidator;
 import com.lecoders.poll.BallotRepository;
 import com.lecoders.poll.PollController;
 import com.lecoders.poll.PollRepository;
@@ -26,7 +27,8 @@ import org.springframework.test.web.servlet.ResultActions;
  * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
  */
 @WebMvcTest(PollController.class)
-@Import({PollRepository.class, BallotRepository.class})
+// AI-assisted integration: use the shared API key validator.
+@Import({PollRepository.class, BallotRepository.class, ApiKeyValidator.class})
 class DeletePollFlowTest {
 
     @Autowired

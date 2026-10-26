@@ -11,4 +11,8 @@ import java.util.List;
  * @param rankedOptionIds option ids ordered from most to least preferred
  */
 public record Ballot(Long id, long pollId, String voterId, List<Integer> rankedOptionIds) {
+    /** Freezes the submitted ranking for consistent result snapshots. */
+    public Ballot {
+        rankedOptionIds = List.copyOf(rankedOptionIds);
+    }
 }
