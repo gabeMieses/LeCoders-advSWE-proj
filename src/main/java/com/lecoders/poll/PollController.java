@@ -142,6 +142,8 @@ public class PollController {
         return Map.of("poll_id", pollId, "ballots_deleted", ballotsDeleted);
     }
 
+      // created this function with Claude. my prompt was essentially specifying the requriements for a 
+      //validation function. the amount of tokens was not displayed
     private static void validateRanking(List<Integer> rankedOptionIds, int optionCount) {
         if (rankedOptionIds == null || rankedOptionIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
