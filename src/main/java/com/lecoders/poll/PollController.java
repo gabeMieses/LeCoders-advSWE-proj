@@ -1,0 +1,46 @@
+package com.lecoders.poll;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+public class PollController {
+
+  record CreatePollRequest(
+      String question,
+      List<String> options,
+      @JsonProperty("counting_method") String countingMethod) {}
+
+  private final PollRepository polls;
+
+  public PollController(PollRepository polls) {
+    this.polls = polls;
+  }
+
+  @PostMapping("/polls")
+  @ResponseStatus(HttpStatus.CREATED)
+  public Map<String, Object> createPoll(
+      @RequestHeader("X-API-Key") String apiKey, @RequestBody CreatePollRequest request) {
+    if (isBlank(request.question())
+        || request.options() == null || request.options().size() < 2
+        || isBlank(request.countingMethod())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "question, at least 2 options, and counting_method are required");
+    }
+    Poll poll = polls.save(new Poll(
+        null, request.question(), request.options(), apiKey, request.countingMethod()));
+    return Map.of("poll_id", poll.id());
+  }
+
+  private static boolean isBlank(String value) {
+    return value == null || value.isBlank();
+  }
+}
