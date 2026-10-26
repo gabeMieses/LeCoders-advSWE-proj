@@ -60,6 +60,7 @@ class BallotRepositoryTest {
         assertThat(saved.id()).isEqualTo(1L);
     }
 
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
     @Test
     void deleteByPollId_removesOnlyThatPollsBallots() {
         ballots.saveIfFirstVote(new Ballot(null, 1, "v1", List.of(0)));

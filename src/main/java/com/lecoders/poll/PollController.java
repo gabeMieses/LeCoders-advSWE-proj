@@ -120,6 +120,8 @@ public class PollController {
      * poll may delete it. After deletion, casting a ballot on or deleting the same poll
      * returns 404.
      *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+     *
      * @param apiKey API key of the client program; must match the poll's creator
      * @param pollId id of the poll to delete
      * @return the deleted poll's id and how many ballots were removed with it
@@ -145,6 +147,8 @@ public class PollController {
 
     /**
      * Rejects the request with 401 unless the API key is one the service accepts.
+     *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
      *
      * @param apiKey API key from the request header, possibly null
      */

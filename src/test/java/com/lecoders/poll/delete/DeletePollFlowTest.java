@@ -22,6 +22,8 @@ import org.springframework.test.web.servlet.ResultActions;
 /**
  * Tests DELETE /polls/{pollId} together with the other endpoints and the real in-memory
  * repositories, to check that a deleted poll is really gone for every later call.
+ *
+ * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
  */
 @WebMvcTest(PollController.class)
 @Import({PollRepository.class, BallotRepository.class})

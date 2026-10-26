@@ -36,6 +36,8 @@ public class BallotRepository {
     /**
      * Removes every ballot cast on a poll, and forgets which voters voted on it.
      *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+     *
      * @param pollId id of the poll whose ballots are removed
      * @return the number of ballots removed
      */
@@ -50,6 +52,7 @@ public class BallotRepository {
         return removed;
     }
 
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
     private static String voteKey(long pollId, String voterId) {
         return pollId + ":" + voterId;
     }

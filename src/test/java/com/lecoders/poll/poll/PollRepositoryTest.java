@@ -47,6 +47,7 @@ class PollRepositoryTest {
         assertThat(saved.id()).isEqualTo(42L);
     }
 
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
     @Test
     void deleteById_existingPoll_removesItAndReturnsTrue() {
         Poll saved = polls.save(newPoll("Q?"));

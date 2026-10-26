@@ -28,6 +28,8 @@ import org.springframework.test.web.servlet.ResultActions;
 /**
  * Unit tests for DELETE /polls/{pollId} with both repositories replaced by Mockito mocks,
  * so each test controls exactly which poll exists and checks which deletes were called.
+ *
+ * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
  */
 @WebMvcTest(PollController.class)
 class DeletePollControllerTest {
