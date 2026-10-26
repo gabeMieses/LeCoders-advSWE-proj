@@ -1,0 +1,18 @@
+package com.lecoders.poll;
+
+import java.util.List;
+
+/**
+ * A ranked ballot cast on a poll.
+ *
+ * @param id unique ballot id, or null before the ballot is saved
+ * @param pollId id of the poll the ballot was cast on
+ * @param voterId client-supplied id of the voter
+ * @param rankedOptionIds option ids ordered from most to least preferred
+ */
+public record Ballot(Long id, long pollId, String voterId, List<Integer> rankedOptionIds) {
+    /** Freezes the submitted ranking for consistent result snapshots. */
+    public Ballot {
+        rankedOptionIds = List.copyOf(rankedOptionIds);
+    }
+}

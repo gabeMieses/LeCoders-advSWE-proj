@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lecoders.poll.ApiKeyValidator;
+import com.lecoders.poll.Ballot;
+import com.lecoders.poll.BallotRepository;
 import com.lecoders.poll.Poll;
 import com.lecoders.poll.PollRepository;
 import java.util.ArrayList;
@@ -14,23 +16,22 @@ import org.springframework.web.server.ResponseStatusException;
 /** Tests snapshot isolation, stable IDs and fail-closed authentication. AI-generated. */
 class StorageAndAuthTest {
     @Test
-    void ballotsAreImmutableSnapshotsAndDeletionDoesNotAffectOtherPolls() {
-        InMemoryRankedBallotStore store = new InMemoryRankedBallotStore();
-        List<Long> input = new ArrayList<>(List.of(1L, 2L));
+    void ballotsAreImmutableSnapshotsAndPollsAreIsolated() {
+        BallotRepository ballots = new BallotRepository();
+        RepositoryRankedBallotStore store = new RepositoryRankedBallotStore(ballots);
+        List<Integer> input = new ArrayList<>(List.of(0, 1));
         assertThat(store.findRankings(1)).isEmpty();
-        store.append(1, input);
+        ballots.saveIfFirstVote(new Ballot(null, 1, "v1", input));
         final List<List<Long>> snapshot = store.findRankings(1);
         input.clear();
-        store.append(1, List.of(2L));
-        store.append(2, List.of(1L));
-        assertThat(snapshot).containsExactly(List.of(1L, 2L));
+        ballots.saveIfFirstVote(new Ballot(null, 1, "v2", List.of(1)));
+        ballots.saveIfFirstVote(new Ballot(null, 2, "v1", List.of(0)));
+        assertThat(snapshot).containsExactly(List.of(0L, 1L));
         assertThat(store.findRankings(1)).hasSize(2);
         assertThatThrownBy(() -> snapshot.add(List.of(1L)))
                 .isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> snapshot.get(0).add(3L))
                 .isInstanceOf(UnsupportedOperationException.class);
-        store.deleteByPollId(1);
-        assertThat(store.findRankings(1)).isEmpty();
         assertThat(store.findRankings(2)).hasSize(1);
     }
 
@@ -40,7 +41,7 @@ class StorageAndAuthTest {
         PollRepository repository = new PollRepository();
         Poll poll = repository.save(new Poll(null, "Question", labels, "key", "borda"));
         labels.clear();
-        assertThat(poll.optionIds()).containsExactly(1L, 2L);
+        assertThat(poll.optionIds()).containsExactly(0L, 1L);
         assertThat(poll.options()).containsExactly("A", "B");
         assertThat(repository.save(poll).id()).isEqualTo(poll.id());
         assertThat(repository.findById(poll.id())).contains(poll);

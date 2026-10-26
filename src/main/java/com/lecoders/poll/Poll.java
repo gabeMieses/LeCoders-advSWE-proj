@@ -3,17 +3,25 @@ package com.lecoders.poll;
 import java.util.List;
 import java.util.stream.LongStream;
 
-/** Existing poll model with immutable option order. */
+/**
+ * A poll created by a client program.
+ *
+ * @param id unique poll id, or null before the poll is saved
+ * @param question the question the poll asks
+ * @param options the answer options voters can rank
+ * @param apiKey API key of the client program that created the poll
+ * @param countingMethod the counting method requested for the poll
+ */
 public record Poll(
         Long id, String question, List<String> options, String apiKey, String countingMethod) {
 
-    /** Freezes option order because option IDs are one-based positions within this poll. */
+    /** Protects the zero-based option positions used by ballot POST. */
     public Poll {
         options = List.copyOf(options);
     }
 
-    /** Returns poll-local IDs 1..N until Issue #2 introduces persistent option entities. */
+    /** Matches the team's zero-based option IDs, 0 through N-1. */
     public List<Long> optionIds() {
-        return LongStream.rangeClosed(1, options.size()).boxed().toList();
+        return LongStream.range(0, options.size()).boxed().toList();
     }
 }

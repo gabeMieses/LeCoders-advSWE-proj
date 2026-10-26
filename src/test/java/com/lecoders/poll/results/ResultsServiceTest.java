@@ -51,10 +51,10 @@ class ResultsServiceTest {
     void readsActualStoredRankingsAndHonorsRequestedMethod() {
         when(polls.findById(77)).thenReturn(Optional.of(
                 new Poll(77L, "Question", List.of("A", "B"), "secret", "plurality")));
-        when(ballots.findRankings(77)).thenReturn(List.of(List.of(2L, 1L)));
+        when(ballots.findRankings(77)).thenReturn(List.of(List.of(1L, 0L)));
         ResultsService.ResultResponse result = service.results(77, "borda");
         assertThat(result.countingMethod()).isEqualTo("borda");
-        assertThat(result.winningOptionId()).isEqualTo(2L);
+        assertThat(result.winningOptionId()).isEqualTo(1L);
         assertThat(result.totalBallots()).isEqualTo(1);
     }
 

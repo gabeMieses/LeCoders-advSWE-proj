@@ -6,13 +6,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Repository;
 
-/** Existing in-memory poll storage. */
+/**
+ * In-memory store for polls.
+ */
 @Repository
 public class PollRepository {
+
     private final Map<Long, Poll> polls = new ConcurrentHashMap<>();
     private final AtomicLong nextId = new AtomicLong(1);
 
-    /** Assigns an ID to new polls and stores the immutable value. */
+    /**
+     * Saves a poll, assigning a new id if it does not have one yet.
+     *
+     * @param poll the poll to save
+     * @return the saved poll with its id set
+     */
     public Poll save(Poll poll) {
         Poll saved = poll.id() == null
                 ? new Poll(nextId.getAndIncrement(), poll.question(), poll.options(),
@@ -22,8 +30,13 @@ public class PollRepository {
         return saved;
     }
 
-    /** Reads a poll without creating an empty poll for an unknown ID. */
-    public Optional<Poll> findById(long pollId) {
-        return Optional.ofNullable(polls.get(pollId));
+    /**
+     * Looks up a poll by id.
+     *
+     * @param id the poll id
+     * @return the poll, or empty if no poll has that id
+     */
+    public Optional<Poll> findById(long id) {
+        return Optional.ofNullable(polls.get(id));
     }
 }

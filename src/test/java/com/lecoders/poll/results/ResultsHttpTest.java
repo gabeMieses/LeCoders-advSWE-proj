@@ -3,8 +3,7 @@ package com.lecoders.poll.results;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.lecoders.poll.Poll;
-import com.lecoders.poll.PollRepository;
+import com.lecoders.poll.support.MockApiKeys;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -18,62 +17,92 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
-/** Real HTTP tests using application stores; ballot POST remains separate. AI-generated. */
+/** Creates, casts and counts using real HTTP only. AI-assisted integration for Issue #6. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "poll.api-keys=test-key,other-client")
+        properties = "poll.api-keys=" + MockApiKeys.CLIENT_A + "," + MockApiKeys.CLIENT_B)
 class ResultsHttpTest {
     @Autowired
     private TestRestTemplate http;
-    @Autowired
-    private PollRepository polls;
-    @Autowired
-    private InMemoryRankedBallotStore ballots;
 
-    private ResponseEntity<JsonNode> get(String path, String key) {
+    private HttpHeaders headers(String key) {
         HttpHeaders headers = new HttpHeaders();
         if (key != null) {
-            headers.set("X-API-Key", key);
+            headers.set(MockApiKeys.HEADER, key);
         }
-        return http.exchange(path, HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class);
+        return headers;
+    }
+
+    private ResponseEntity<JsonNode> get(String path, String key) {
+        return http.exchange(path, HttpMethod.GET,
+                new HttpEntity<>(headers(key)), JsonNode.class);
+    }
+
+    private ResponseEntity<JsonNode> post(String path, Object body, String key) {
+        return http.postForEntity(path, new HttpEntity<>(body, headers(key)), JsonNode.class);
+    }
+
+    private long createPoll() {
+        ResponseEntity<JsonNode> created = post("/polls",
+                Map.of("question", "Map?", "options", List.of("A", "B", "C"),
+                        "counting_method", "plurality"), MockApiKeys.CLIENT_A);
+        assertThat(created.getStatusCode().value()).isEqualTo(201);
+        assertThat(created.getBody().get("option_ids").toString()).isEqualTo("[0,1,2]");
+        return created.getBody().get("poll_id").asLong();
+    }
+
+    private void cast(long pollId, String voter, List<Integer> ranking) {
+        assertThat(post("/polls/" + pollId + "/ballots",
+                Map.of("voter_id", voter, "ranked_option_ids", ranking), MockApiKeys.CLIENT_B)
+                .getStatusCode().value()).isEqualTo(201);
     }
 
     @ParameterizedTest
     @EnumSource(CountingMethod.class)
     void returnsPopulatedResultsOverHttp(CountingMethod method) {
-        Poll poll = polls.save(new Poll(null, "Map?", List.of("A", "B", "C"),
-                "test-key", "plurality"));
-        ballots.append(poll.id(), List.of(2L, 1L, 3L));
-        ballots.append(poll.id(), List.of(2L));
-        ballots.append(poll.id(), List.of(1L, 2L));
-        String path = "/polls/" + poll.id() + "/results?counting_method=" + method.wireName();
-        ResponseEntity<JsonNode> response = get(path, "other-client");
+        long pollId = createPoll();
+        cast(pollId, "v1", List.of(1, 0, 2));
+        cast(pollId, "v2", List.of(1));
+        cast(pollId, "v3", List.of(0, 1));
+        String path = "/polls/" + pollId + "/results?counting_method=" + method.wireName();
+        ResponseEntity<JsonNode> response = get(path, MockApiKeys.CLIENT_B);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         JsonNode body = response.getBody();
-        assertThat(body.get("poll_id").asLong()).isEqualTo(poll.id());
-        assertThat(body.get("winning_option_id").asLong()).isEqualTo(2);
+        assertThat(body.get("poll_id").asLong()).isEqualTo(pollId);
+        assertThat(body.get("winning_option_id").asLong()).isEqualTo(1);
         assertThat(body.get("total_ballots").asInt()).isEqualTo(3);
         assertThat(body.get("counting_method").asText()).isEqualTo(method.wireName());
-        assertThat(body.has("counts")).isTrue();
-        assertThat(body.has("rounds")).isTrue();
-        assertThat(get(path, "test-key").getBody()).isEqualTo(body);
-        assertThat(ballots.findRankings(poll.id())).hasSize(3);
+        long expected = method == CountingMethod.BORDA ? 5 : 2;
+        assertThat(body.get("counts").get("1").asLong()).isEqualTo(expected);
+        assertThat(get(path, MockApiKeys.CLIENT_A).getBody()).isEqualTo(body);
+    }
+
+    @Test
+    void rankedChoiceTransfersPostedBallotsAndRecordsRounds() {
+        long pollId = createPoll();
+        cast(pollId, "v1", List.of(0, 1));
+        cast(pollId, "v2", List.of(0));
+        cast(pollId, "v3", List.of(1));
+        cast(pollId, "v4", List.of(1));
+        cast(pollId, "v5", List.of(2, 1));
+        JsonNode result = get("/polls/" + pollId
+                + "/results?counting_method=ranked_choice", MockApiKeys.CLIENT_A).getBody();
+        assertThat(result.get("winning_option_id").asInt()).isEqualTo(1);
+        assertThat(result.get("rounds").size()).isEqualTo(2);
+        assertThat(result.get("rounds").get(0).get("eliminated_option_id").asInt()).isEqualTo(2);
+        assertThat(result.get("counts").get("1").asInt()).isEqualTo(3);
+        long otherPoll = createPoll();
+        assertThat(get("/polls/" + otherPoll + "/results?counting_method=plurality",
+                MockApiKeys.CLIENT_A).getBody().get("total_ballots").asInt()).isZero();
     }
 
     @Test
     void createThenQueryEmptyPollUsingReturnedIds() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-API-Key", "test-key");
-        ResponseEntity<JsonNode> created = http.postForEntity("/polls", new HttpEntity<>(
-                Map.of("question", "Map?", "options", List.of("A", "B"),
-                        "counting_method", "plurality"), headers), JsonNode.class);
-        assertThat(created.getStatusCode().value()).isEqualTo(201);
-        assertThat(created.getBody().get("option_ids").toString()).isEqualTo("[1,2]");
-        long pollId = created.getBody().get("poll_id").asLong();
+        long pollId = createPoll();
         JsonNode result = get("/polls/" + pollId + "/results?counting_method=ranked_choice",
-                "test-key").getBody();
+                MockApiKeys.CLIENT_A).getBody();
         assertThat(result.get("winning_option_id").isNull()).isTrue();
         assertThat(result.get("total_ballots").asInt()).isZero();
-        assertThat(result.get("counts").get("1").asInt()).isZero();
+        assertThat(result.get("counts").get("0").asInt()).isZero();
         assertThat(result.get("rounds").isEmpty()).isTrue();
     }
 
@@ -82,12 +111,28 @@ class ResultsHttpTest {
         String path = "/polls/999999/results?counting_method=plurality";
         assertThat(get(path, null).getStatusCode().value()).isEqualTo(401);
         assertThat(get(path, "wrong").getStatusCode().value()).isEqualTo(401);
-        assertThat(get(path, "test-key").getStatusCode().value()).isEqualTo(404);
-        assertThat(get("/polls/999999/results?counting_method=approval", "test-key")
+        assertThat(get(path, MockApiKeys.CLIENT_A).getStatusCode().value()).isEqualTo(404);
+        assertThat(get("/polls/999999/results?counting_method=approval", MockApiKeys.CLIENT_A)
                 .getStatusCode().value()).isEqualTo(400);
-        assertThat(get("/polls/999999/results", "test-key")
+        assertThat(get("/polls/999999/results", MockApiKeys.CLIENT_A)
                 .getStatusCode().value()).isEqualTo(400);
-        assertThat(get("/polls/not-a-number/results?counting_method=borda", "test-key")
+        assertThat(get("/polls/not-a-number/results?counting_method=borda", MockApiKeys.CLIENT_A)
                 .getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void rejectedBallotsDoNotChangeResultsAndKeyPolicyIsShared() {
+        long pollId = createPoll();
+        Map<String, Object> ballot = Map.of("voter_id", "v1", "ranked_option_ids", List.of(0));
+        String path = "/polls/" + pollId + "/ballots";
+        assertThat(post("/polls", Map.of(), "wrong").getStatusCode().value()).isEqualTo(401);
+        assertThat(post(path, ballot, "wrong").getStatusCode().value()).isEqualTo(401);
+        assertThat(post(path, ballot, null).getStatusCode().value()).isEqualTo(401);
+        cast(pollId, "v1", List.of(0));
+        assertThat(post(path, ballot, MockApiKeys.CLIENT_A).getStatusCode().value()).isEqualTo(400);
+        assertThat(post(path, Map.of("voter_id", "v2", "ranked_option_ids", List.of(3)),
+                MockApiKeys.CLIENT_A).getStatusCode().value()).isEqualTo(400);
+        assertThat(get("/polls/" + pollId + "/results?counting_method=plurality",
+                MockApiKeys.CLIENT_A).getBody().get("total_ballots").asInt()).isEqualTo(1);
     }
 }
