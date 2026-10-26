@@ -7,7 +7,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** GET results adapter; calculations have no write side effects. */
+/**
+ * GET results adapter; calculations have no write side effects.
+ *
+ */
 @RestController
 public class ResultsController {
     private final ResultsService results;

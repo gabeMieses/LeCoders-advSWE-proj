@@ -8,7 +8,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-/** Pure counting algorithms with deterministic numeric-ID ties. */
+/**
+ * Pure counting algorithms with deterministic numeric-ID ties.
+ *
+ */
 public final class CountingAlgorithms {
     private CountingAlgorithms() {}
 

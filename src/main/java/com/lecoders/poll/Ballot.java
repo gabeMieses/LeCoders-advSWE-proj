@@ -11,7 +11,11 @@ import java.util.List;
  * @param rankedOptionIds option ids ordered from most to least preferred
  */
 public record Ballot(Long id, long pollId, String voterId, List<Integer> rankedOptionIds) {
-    /** Freezes the submitted ranking for consistent result snapshots. */
+    /**
+     * Freezes the submitted ranking for consistent result snapshots.
+     *
+     * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+     */
     public Ballot {
         rankedOptionIds = List.copyOf(rankedOptionIds);
     }
