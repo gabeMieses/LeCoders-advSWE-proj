@@ -65,10 +65,7 @@ public class PollController {
     public Map<String, Object> createPoll(
             @RequestHeader(value = "X-API-Key", required = false) String apiKey,
             @RequestBody CreatePollRequest request) {
-        if (apiKey == null || !validApiKeys.contains(apiKey)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "missing or unknown API key");
-        }
+        requireValidApiKey(apiKey);
         List<String> options = request.options();
         if (isBlank(request.question())
                 || options == null || options.size() < 2
@@ -117,6 +114,18 @@ public class PollController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "voter " + request.voterId() + " has already voted on this poll"));
         return Map.of("ballot_id", ballot.id());
+    }
+
+    /**
+     * Rejects the request with 401 unless the API key is one the service accepts.
+     *
+     * @param apiKey API key from the request header, possibly null
+     */
+    private void requireValidApiKey(String apiKey) {
+        if (apiKey == null || !validApiKeys.contains(apiKey)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "missing or unknown API key");
+        }
     }
 
     private static void validateRanking(List<Integer> rankedOptionIds, int optionCount) {
