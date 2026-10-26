@@ -135,4 +135,31 @@ class ResultsHttpTest {
         assertThat(get("/polls/" + pollId + "/results?counting_method=plurality",
                 MockApiKeys.CLIENT_A).getBody().get("total_ballots").asInt()).isEqualTo(1);
     }
+
+    /** AI-assisted regression test for results integration with the delete endpoint. */
+    @Test
+    void deletionRemovesResultsAndPreservesOtherPolls() {
+        long removed = createPoll();
+        long kept = createPoll();
+        cast(removed, "v1", List.of(0));
+        cast(kept, "v1", List.of(1));
+        String path = "/polls/" + removed;
+        assertThat(http.exchange(path, HttpMethod.DELETE,
+                new HttpEntity<>(headers(MockApiKeys.CLIENT_B)), JsonNode.class)
+                .getStatusCode().value()).isEqualTo(401);
+        assertThat(get(path + "/results?counting_method=plurality", MockApiKeys.CLIENT_A)
+                .getBody().get("total_ballots").asInt()).isEqualTo(1);
+        ResponseEntity<JsonNode> deleted = http.exchange(path, HttpMethod.DELETE,
+                new HttpEntity<>(headers(MockApiKeys.CLIENT_A)), JsonNode.class);
+        assertThat(deleted.getStatusCode().value()).isEqualTo(200);
+        assertThat(deleted.getBody().get("ballots_deleted").asInt()).isEqualTo(1);
+        for (String method : List.of("plurality", "borda", "ranked_choice")) {
+            assertThat(get(path + "/results?counting_method=" + method, MockApiKeys.CLIENT_A)
+                    .getStatusCode().value()).isEqualTo(404);
+        }
+        JsonNode remaining = get("/polls/" + kept + "/results?counting_method=plurality",
+                MockApiKeys.CLIENT_A).getBody();
+        assertThat(remaining.get("total_ballots").asInt()).isEqualTo(1);
+        assertThat(remaining.get("winning_option_id").asInt()).isEqualTo(1);
+    }
 }

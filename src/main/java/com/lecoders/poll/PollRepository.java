@@ -39,4 +39,16 @@ public class PollRepository {
     public Optional<Poll> findById(long id) {
         return Optional.ofNullable(polls.get(id));
     }
+
+    /**
+     * Removes a poll.
+     *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+     *
+     * @param id the poll id
+     * @return true if a poll with that id existed and was removed
+     */
+    public boolean deleteById(long id) {
+        return polls.remove(id) != null;
+    }
 }
