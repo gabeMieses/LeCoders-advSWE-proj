@@ -98,6 +98,15 @@ class CastBallotControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+    @Test
+    void castBallot_unknownApiKey_returns401() throws Exception {
+        castBallot(pollId, "not-a-real-key", """
+                {"voter_id": "v1", "ranked_option_ids": [0]}
+                """)
+                .andExpect(status().isUnauthorized());
+    }
+
     @Test
     void castBallot_unknownPoll_returns404() throws Exception {
         castBallot(pollId + 1000, MockApiKeys.CLIENT_A, """

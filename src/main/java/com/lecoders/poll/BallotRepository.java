@@ -24,12 +24,36 @@ public class BallotRepository {
      * @return the saved ballot with its id set, or empty if the voter already voted
      */
     public Optional<Ballot> saveIfFirstVote(Ballot ballot) {
-        if (!voted.add(ballot.pollId() + ":" + ballot.voterId())) {
+        if (!voted.add(voteKey(ballot.pollId(), ballot.voterId()))) {
             return Optional.empty();
         }
         Ballot saved = new Ballot(nextId.getAndIncrement(), ballot.pollId(), ballot.voterId(),
                 ballot.rankedOptionIds());
         ballots.put(saved.id(), saved);
         return Optional.of(saved);
+    }
+
+    /**
+     * Removes every ballot cast on a poll, and forgets which voters voted on it.
+     *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+     *
+     * @param pollId id of the poll whose ballots are removed
+     * @return the number of ballots removed
+     */
+    public int deleteByPollId(long pollId) {
+        int removed = 0;
+        for (Ballot ballot : ballots.values()) {
+            if (ballot.pollId() == pollId && ballots.remove(ballot.id(), ballot)) {
+                voted.remove(voteKey(pollId, ballot.voterId()));
+                removed++;
+            }
+        }
+        return removed;
+    }
+
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+    private static String voteKey(long pollId, String voterId) {
+        return pollId + ":" + voterId;
     }
 }
