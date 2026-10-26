@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.stream.IntStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -114,6 +115,34 @@ public class PollController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "voter " + request.voterId() + " has already voted on this poll"));
         return Map.of("ballot_id", ballot.id());
+    }
+
+    /**
+     * Deletes a poll and every ballot cast on it. Only the client program that created the
+     * poll may delete it. After deletion, casting a ballot on or deleting the same poll
+     * returns 404.
+     *
+     * @param apiKey API key of the client program; must match the poll's creator
+     * @param pollId id of the poll to delete
+     * @return the deleted poll's id and how many ballots were removed with it
+     */
+    @DeleteMapping("/polls/{pollId}")
+    public Map<String, Object> deletePoll(
+            @RequestHeader(value = "X-API-Key", required = false) String apiKey,
+            @PathVariable long pollId) {
+        requireValidApiKey(apiKey);
+        Poll poll = polls.findById(pollId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "unknown poll_id " + pollId));
+        if (!poll.apiKey().equals(apiKey)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "only the client program that created the poll may delete it");
+        }
+        // Remove the poll first so new ballots are rejected with 404 while its ballots
+        // are being cleared.
+        polls.deleteById(pollId);
+        int ballotsDeleted = ballots.deleteByPollId(pollId);
+        return Map.of("poll_id", pollId, "ballots_deleted", ballotsDeleted);
     }
 
     /**
