@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.IntStream;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,8 +33,14 @@ public class PollController {
             @JsonProperty("ranked_option_ids") List<Integer> rankedOptionIds) {
     }
 
+    private static final Set<String> COUNTING_METHODS =
+            Set.of("plurality", "ranked_choice", "borda");
+
     private final PollRepository polls;
     private final BallotRepository ballots;
+
+    @Value("${poll.api-keys}")
+    private Set<String> validApiKeys;
 
     /**
      * Creates the controller.
@@ -50,21 +58,32 @@ public class PollController {
      *
      * @param apiKey API key of the client program
      * @param request the poll's question, options and counting method
-     * @return the new poll's id
+     * @return the new poll's id and option ids (zero-based positions in the options list)
      */
     @PostMapping("/polls")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> createPoll(
-            @RequestHeader("X-API-Key") String apiKey, @RequestBody CreatePollRequest request) {
+            @RequestHeader(value = "X-API-Key", required = false) String apiKey,
+            @RequestBody CreatePollRequest request) {
+        if (apiKey == null || !validApiKeys.contains(apiKey)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "missing or unknown API key");
+        }
+        List<String> options = request.options();
         if (isBlank(request.question())
-                || request.options() == null || request.options().size() < 2
-                || isBlank(request.countingMethod())) {
+                || options == null || options.size() < 2
+                || options.stream().anyMatch(PollController::isBlank)
+                || new HashSet<>(options).size() != options.size()
+                || isBlank(request.countingMethod())
+                || !COUNTING_METHODS.contains(request.countingMethod())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "question, at least 2 options, and counting_method are required");
+                    "question, at least 2 distinct non-blank options, and a counting_method of "
+                            + COUNTING_METHODS + " are required");
         }
         Poll poll = polls.save(new Poll(
-                null, request.question(), request.options(), apiKey, request.countingMethod()));
-        return Map.of("poll_id", poll.id());
+                null, request.question(), options, apiKey, request.countingMethod()));
+        return Map.of("poll_id", poll.id(),
+                "option_ids", IntStream.range(0, options.size()).boxed().toList());
     }
 
     /**
