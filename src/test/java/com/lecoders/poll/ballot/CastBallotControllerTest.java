@@ -99,6 +99,14 @@ class CastBallotControllerTest {
     }
 
     @Test
+    void castBallot_unknownApiKey_returns401() throws Exception {
+        castBallot(pollId, "not-a-real-key", """
+                {"voter_id": "v1", "ranked_option_ids": [0]}
+                """)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void castBallot_unknownPoll_returns404() throws Exception {
         castBallot(pollId + 1000, MockApiKeys.CLIENT_A, """
                 {"voter_id": "v1", "ranked_option_ids": [0]}

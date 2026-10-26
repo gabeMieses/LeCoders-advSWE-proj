@@ -99,9 +99,7 @@ public class PollController {
             @RequestHeader(value = "X-API-Key", required = false) String apiKey,
             @PathVariable long pollId,
             @RequestBody CastBallotRequest request) {
-        if (isBlank(apiKey)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "missing API key");
-        }
+        requireValidApiKey(apiKey);
         Poll poll = polls.findById(pollId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "unknown poll_id " + pollId));
