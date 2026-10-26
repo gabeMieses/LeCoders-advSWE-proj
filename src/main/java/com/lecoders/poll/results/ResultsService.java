@@ -9,7 +9,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Loads existing poll data and counts a ballot snapshot. */
+/**
+ * Loads existing poll data and counts a ballot snapshot.
+ *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
 @Service
 public class ResultsService {
     private final PollRepository polls;

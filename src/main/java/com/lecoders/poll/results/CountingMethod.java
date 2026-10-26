@@ -1,6 +1,9 @@
 package com.lecoders.poll.results;
 
-/** Supported, case-sensitive wire values. */
+/**
+ * Supported, case-sensitive wire values.
+ *
+ */
 public enum CountingMethod {
     PLURALITY("plurality"),
     RANKED_CHOICE("ranked_choice"),

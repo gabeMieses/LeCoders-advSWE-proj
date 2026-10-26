@@ -8,7 +8,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Configurable shared key check; no hard-coded production keys. */
+/**
+ * Configurable shared key check; no hard-coded production keys.
+ *
+ */
 @Component
 public class ApiKeyValidator {
     private final Set<String> allowed;

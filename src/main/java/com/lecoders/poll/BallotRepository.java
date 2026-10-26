@@ -22,6 +22,9 @@ public class BallotRepository {
     /**
      * Saves a new ballot unless its voter has already voted on the same poll.
      *
+     * <p>Synchronization change AI-generated with OpenAI Codex;
+     * integration tested by Haoran (@lek1ma). Original save logic is a team contribution.
+     *
      * @param ballot the ballot to save; its id is ignored
      * @return the saved ballot with its id set, or empty if the voter already voted
      */
@@ -40,6 +43,9 @@ public class BallotRepository {
      *
      * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
      *
+     * <p>Synchronization change AI-generated with OpenAI Codex;
+     * integration tested by Haoran (@lek1ma).
+     *
      * @param pollId id of the poll whose ballots are removed
      * @return the number of ballots removed
      */
@@ -54,7 +60,11 @@ public class BallotRepository {
         return removed;
     }
 
-    /** Atomically snapshots the same ballots accepted by POST. */
+    /**
+     * Atomically snapshots the same ballots accepted by POST.
+     *
+     * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+     */
     public synchronized List<Ballot> findByPollId(long pollId) {
         return ballots.values().stream().filter(ballot -> ballot.pollId() == pollId)
                 .sorted(Comparator.comparing(Ballot::id)).toList();

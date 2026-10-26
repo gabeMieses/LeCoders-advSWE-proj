@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 
-/** Immutable calculation result; counts mean Borda points or votes. */
+/**
+ * Immutable calculation result; counts mean Borda points or votes.
+ *
+ */
 public record CountResult(
         @JsonProperty("winning_option_id") Long winningOptionId,
         Map<Long, Long> counts,

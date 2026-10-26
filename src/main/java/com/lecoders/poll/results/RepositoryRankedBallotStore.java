@@ -4,7 +4,11 @@ import com.lecoders.poll.BallotRepository;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
-/** Reads the same repository used by ballot POST. */
+/**
+ * Reads the same repository used by ballot POST.
+ *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
 @Component
 public class RepositoryRankedBallotStore implements RankedBallotStore {
     private final BallotRepository ballots;

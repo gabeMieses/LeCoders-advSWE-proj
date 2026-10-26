@@ -15,12 +15,18 @@ import java.util.stream.LongStream;
 public record Poll(
         Long id, String question, List<String> options, String apiKey, String countingMethod) {
 
-    /** Protects the zero-based option positions used by ballot POST. */
+    /**
+     * Protects the zero-based option positions used by ballot POST.
+     *
+     */
     public Poll {
         options = List.copyOf(options);
     }
 
-    /** Matches the team's zero-based option IDs, 0 through N-1. */
+    /**
+     * Matches the team's zero-based option IDs, 0 through N-1.
+     *
+     */
     public List<Long> optionIds() {
         return LongStream.range(0, options.size()).boxed().toList();
     }
