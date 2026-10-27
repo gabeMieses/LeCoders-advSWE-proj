@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+// AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
 @WebMvcTest(PollController.class)
 // AI-assisted integration: import the shared key validator used by all endpoints.
 @Import({PollRepository.class, BallotRepository.class, ApiKeyValidator.class})

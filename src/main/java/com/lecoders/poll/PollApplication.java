@@ -5,6 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Spring Boot entry point for the poll service.
+ *
+ * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
  */
 @SpringBootApplication
 public class PollApplication {

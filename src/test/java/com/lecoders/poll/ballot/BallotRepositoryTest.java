@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-// Wrote test cases with Claude. Tokens are unown
 
+// AI-generated with Claude Code (Opus 5.5); reviewed and tested by JB Diei.
 class BallotRepositoryTest {
 
     private BallotRepository ballots;

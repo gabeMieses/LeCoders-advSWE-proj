@@ -6,6 +6,8 @@ import java.util.stream.LongStream;
 /**
  * A poll created by a client program.
  *
+ * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
+ *
  * @param id unique poll id, or null before the poll is saved
  * @param question the question the poll asks
  * @param options the answer options voters can rank
