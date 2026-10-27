@@ -91,6 +91,8 @@ public class PollController {
      * Casts a ranked ballot on a poll. Option ids are the zero-based positions of the
      * options in the list the poll was created with.
      *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by JB Diei.
+     *
      * @param apiKey API key of the client program
      * @param pollId id of the poll being voted on
      * @param request the voter's id and ranked list of option ids
@@ -148,8 +150,7 @@ public class PollController {
         return Map.of("poll_id", pollId, "ballots_deleted", ballotsDeleted);
     }
 
-      // created this function with Claude. my prompt was essentially specifying the requriements for a 
-      //validation function. the amount of tokens was not displayed
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by JB Diei.
     private static void validateRanking(List<Integer> rankedOptionIds, int optionCount) {
         if (rankedOptionIds == null || rankedOptionIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
