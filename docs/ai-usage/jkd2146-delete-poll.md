@@ -13,7 +13,7 @@ Task: issue #5, `DELETE /polls/{pollId}`, merged in PR #18.
 
 ## How I used it
 
-1. **Planning.** I gave Claude the assignment description, the rubric, and our proposal. I asked it to look at the repo's current state and the GitHub issue assigned to me (#5), and to plan the work before writing any code. It summarized what was already on main, listed the open issues and who owned them, and proposed a plan for the delete endpoint: check order, response codes, repository methods and tests.
+1. **Planning.** I gave Claude our proposal. I asked it to look at the repo's current state and the GitHub issue assigned to me (#5), and to plan the work before writing any code. It summarized what was already on main, listed the open issues and who owned them, and proposed a plan for the delete endpoint: check order, response codes, repository methods and tests.
 2. **Updating the plan.** PR #17 (create-poll follow-up) was merged while I was planning. I asked Claude to look at the new commit first. It adjusted the plan to reuse the API key check that #17 added.
 3. **Splitting the work into steps.** I asked Claude to implement the task as separate commits, one per step:
    1. Move the API key check into a shared helper (no behavior change)
