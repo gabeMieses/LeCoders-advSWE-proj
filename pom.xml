@@ -5,7 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <!-- Project skeleton (parent, coordinates, web starter, Spring Boot plugin) AI-generated
          with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
-         Checkstyle, JaCoCo and test dependencies were added later in the tooling PR. -->
+         Checkstyle, JaCoCo, properties and spring-boot-starter-test AI-generated with
+         Cursor Agent (Claude Opus 5); reviewed and tested by Aliasgar Sakarwala (as8199). -->
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -34,7 +35,8 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Testing: brings in JUnit 5, Mockito, AssertJ and MockMvc. -->
+        <!-- Testing: brings in JUnit 5, Mockito, AssertJ and MockMvc.
+             AI-generated with Cursor Agent (Claude Opus 5); reviewed and tested by Aliasgar Sakarwala. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -49,7 +51,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- Style checker: Google checks with 4-space indentation (config/checkstyle/checkstyle.xml). -->
+            <!-- Style checker: Google checks with 4-space indentation (config/checkstyle/checkstyle.xml).
+                 AI-generated with Cursor Agent (Claude Opus 5); reviewed and tested by Aliasgar Sakarwala. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -80,7 +83,8 @@
                 </executions>
             </plugin>
 
-            <!-- Coverage: records coverage during tests, writes target/site/jacoco/index.html. -->
+            <!-- Coverage: records coverage during tests, writes target/site/jacoco/index.html.
+                 AI-generated with Cursor Agent (Claude Opus 5); reviewed and tested by Aliasgar Sakarwala. -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>

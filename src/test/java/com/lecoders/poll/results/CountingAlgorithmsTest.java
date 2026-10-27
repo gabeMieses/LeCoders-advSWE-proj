@@ -11,7 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-/** Hand-calculated election examples and invalid-data tests. AI-generated for Issue #6. */
+/**
+ * Hand-calculated election examples and invalid-data tests for Issue #6.
+ *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
 class CountingAlgorithmsTest {
     private static final List<Long> OPTIONS = List.of(1L, 2L, 3L);
 

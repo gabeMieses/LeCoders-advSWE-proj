@@ -17,7 +17,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
-/** Creates, casts and counts using real HTTP only. AI-assisted integration for Issue #6. */
+/**
+ * Creates, casts and counts using real HTTP only, as integration cover for Issue #6.
+ *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "poll.api-keys=" + MockApiKeys.CLIENT_A + "," + MockApiKeys.CLIENT_B)
 class ResultsHttpTest {

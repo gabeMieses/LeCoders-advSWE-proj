@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BallotRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poll-service</a> &gt; <a href="index.source.html" class="el_package">com.lecoders.poll</a> &gt; <span class="el_source">BallotRepository.java</span></div><h1>BallotRepository.java</h1><pre class="source lang-java linenums">package com.lecoders.poll;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.stereotype.Repository;
+
+/**
+ * In-memory store for ballots.
+ */
+@Repository
+<span class="fc" id="L16">public class BallotRepository {</span>
+
+<span class="fc" id="L18">    private final Map&lt;Long, Ballot&gt; ballots = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L19">    private final Set&lt;String&gt; voted = ConcurrentHashMap.newKeySet();</span>
+<span class="fc" id="L20">    private final AtomicLong nextId = new AtomicLong(1);</span>
+
+    /**
+     * Saves a new ballot unless its voter has already voted on the same poll.
+     *
+     * &lt;p&gt;Synchronization change AI-generated with OpenAI Codex;
+     * integration tested by Haoran (@lek1ma). Original save logic is a team contribution.
+     *
+     * @param ballot the ballot to save; its id is ignored
+     * @return the saved ballot with its id set, or empty if the voter already voted
+     */
+    public synchronized Optional&lt;Ballot&gt; saveIfFirstVote(Ballot ballot) {
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        if (!voted.add(voteKey(ballot.pollId(), ballot.voterId()))) {</span>
+<span class="fc" id="L33">            return Optional.empty();</span>
+        }
+<span class="fc" id="L35">        Ballot saved = new Ballot(nextId.getAndIncrement(), ballot.pollId(), ballot.voterId(),</span>
+<span class="fc" id="L36">                ballot.rankedOptionIds());</span>
+<span class="fc" id="L37">        ballots.put(saved.id(), saved);</span>
+<span class="fc" id="L38">        return Optional.of(saved);</span>
+    }
+
+    /**
+     * Removes every ballot cast on a poll, and forgets which voters voted on it.
+     *
+     * &lt;p&gt;AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+     *
+     * &lt;p&gt;Synchronization change AI-generated with OpenAI Codex;
+     * integration tested by Haoran (@lek1ma).
+     *
+     * @param pollId id of the poll whose ballots are removed
+     * @return the number of ballots removed
+     */
+    public synchronized int deleteByPollId(long pollId) {
+<span class="fc" id="L53">        int removed = 0;</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (Ballot ballot : ballots.values()) {</span>
+<span class="pc bpc" id="L55" title="1 of 4 branches missed.">            if (ballot.pollId() == pollId &amp;&amp; ballots.remove(ballot.id(), ballot)) {</span>
+<span class="fc" id="L56">                voted.remove(voteKey(pollId, ballot.voterId()));</span>
+<span class="fc" id="L57">                removed++;</span>
+            }
+<span class="fc" id="L59">        }</span>
+<span class="fc" id="L60">        return removed;</span>
+    }
+
+    /**
+     * Atomically snapshots the same ballots accepted by POST.
+     *
+     * &lt;p&gt;AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+     */
+    public synchronized List&lt;Ballot&gt; findByPollId(long pollId) {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        return ballots.values().stream().filter(ballot -&gt; ballot.pollId() == pollId)</span>
+<span class="fc" id="L70">                .sorted(Comparator.comparing(Ballot::id)).toList();</span>
+    }
+
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+    private static String voteKey(long pollId, String voterId) {
+<span class="fc" id="L75">        return pollId + &quot;:&quot; + voterId;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

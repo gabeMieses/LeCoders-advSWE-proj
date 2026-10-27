@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PollRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poll-service</a> &gt; <a href="index.source.html" class="el_package">com.lecoders.poll</a> &gt; <span class="el_source">PollRepository.java</span></div><h1>PollRepository.java</h1><pre class="source lang-java linenums">package com.lecoders.poll;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.stereotype.Repository;
+
+/**
+ * In-memory store for polls.
+ */
+@Repository
+<span class="fc" id="L13">public class PollRepository {</span>
+
+<span class="fc" id="L15">    private final Map&lt;Long, Poll&gt; polls = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L16">    private final AtomicLong nextId = new AtomicLong(1);</span>
+
+    /**
+     * Saves a poll, assigning a new id if it does not have one yet.
+     *
+     * &lt;p&gt;AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
+     *
+     * @param poll the poll to save
+     * @return the saved poll with its id set
+     */
+    public Poll save(Poll poll) {
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        Poll saved = poll.id() == null</span>
+<span class="fc" id="L28">                ? new Poll(nextId.getAndIncrement(), poll.question(), poll.options(),</span>
+<span class="fc" id="L29">                        poll.apiKey(), poll.countingMethod())</span>
+<span class="fc" id="L30">                : poll;</span>
+<span class="fc" id="L31">        polls.put(saved.id(), saved);</span>
+<span class="fc" id="L32">        return saved;</span>
+    }
+
+    /**
+     * Looks up a poll by id.
+     *
+     * @param id the poll id
+     * @return the poll, or empty if no poll has that id
+     */
+    public Optional&lt;Poll&gt; findById(long id) {
+<span class="fc" id="L42">        return Optional.ofNullable(polls.get(id));</span>
+    }
+
+    /**
+     * Removes a poll.
+     *
+     * &lt;p&gt;AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+     *
+     * @param id the poll id
+     * @return true if a poll with that id existed and was removed
+     */
+    public boolean deleteById(long id) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        return polls.remove(id) != null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

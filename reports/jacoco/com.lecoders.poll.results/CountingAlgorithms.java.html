@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CountingAlgorithms.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poll-service</a> &gt; <a href="index.source.html" class="el_package">com.lecoders.poll.results</a> &gt; <span class="el_source">CountingAlgorithms.java</span></div><h1>CountingAlgorithms.java</h1><pre class="source lang-java linenums">package com.lecoders.poll.results;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+/**
+ * Pure counting algorithms with deterministic numeric-ID ties.
+ *
+ * &lt;p&gt;AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
+public final class CountingAlgorithms {
+    private CountingAlgorithms() {}
+
+    /**
+     * Counts a validated snapshot without modifying its options or ballots.
+     * Partial rankings are allowed; empty, duplicate and unknown rankings are rejected.
+     */
+    public static CountResult count(
+            List&lt;Long&gt; options, List&lt;List&lt;Long&gt;&gt; ballots, CountingMethod method) {
+<span class="fc" id="L25">        validate(options, ballots);</span>
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        if (method == null) {</span>
+<span class="fc" id="L27">            throw new IllegalArgumentException(&quot;counting_method is required&quot;);</span>
+        }
+<span class="fc bfc" id="L29" title="All 2 branches covered.">        if (ballots.isEmpty()) {</span>
+<span class="fc" id="L30">            return new CountResult(null, zeroCounts(options), 0, List.of());</span>
+        }
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        if (method == CountingMethod.RANKED_CHOICE) {</span>
+<span class="fc" id="L33">            return rankedChoice(options, ballots);</span>
+        }
+<span class="fc" id="L35">        Map&lt;Long, Long&gt; counts = zeroCounts(options);</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        for (List&lt;Long&gt; ballot : ballots) {</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            if (method == CountingMethod.PLURALITY) {</span>
+<span class="fc" id="L38">                counts.merge(ballot.get(0), 1L, Long::sum);</span>
+            } else {
+<span class="fc bfc" id="L40" title="All 2 branches covered.">                for (int rank = 0; rank &lt; ballot.size(); rank++) {</span>
+<span class="fc" id="L41">                    counts.merge(ballot.get(rank), (long) options.size() - rank - 1, Long::sum);</span>
+                }
+            }
+<span class="fc" id="L44">        }</span>
+<span class="fc" id="L45">        return new CountResult(winner(counts), counts, ballots.size(), List.of());</span>
+    }
+
+    private static void validate(List&lt;Long&gt; options, List&lt;List&lt;Long&gt;&gt; ballots) {
+<span class="fc bfc" id="L49" title="All 4 branches covered.">        if (options == null || options.size() &lt; 2</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">                || options.stream().anyMatch(java.util.Objects::isNull)</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">                || new HashSet&lt;&gt;(options).size() != options.size()) {</span>
+<span class="fc" id="L52">            throw new IllegalArgumentException(</span>
+                    &quot;At least two distinct non-null option IDs required&quot;);
+        }
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (ballots == null) {</span>
+<span class="fc" id="L56">            throw new IllegalArgumentException(&quot;Ballots are required&quot;);</span>
+        }
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        for (List&lt;Long&gt; ballot : ballots) {</span>
+<span class="fc bfc" id="L59" title="All 4 branches covered.">            if (ballot == null || ballot.isEmpty()</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">                    || ballot.stream().anyMatch(java.util.Objects::isNull)</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">                    || !options.containsAll(ballot)</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">                    || new HashSet&lt;&gt;(ballot).size() != ballot.size()) {</span>
+<span class="fc" id="L63">                throw new IllegalArgumentException(&quot;Invalid stored ranking&quot;);</span>
+            }
+<span class="fc" id="L65">        }</span>
+<span class="fc" id="L66">    }</span>
+
+    private static Map&lt;Long, Long&gt; zeroCounts(Iterable&lt;Long&gt; options) {
+<span class="fc" id="L69">        Map&lt;Long, Long&gt; counts = new TreeMap&lt;&gt;();</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        for (Long option : options) {</span>
+<span class="fc" id="L71">            counts.put(option, 0L);</span>
+<span class="fc" id="L72">        }</span>
+<span class="fc" id="L73">        return counts;</span>
+    }
+
+    // The lowest numeric ID wins an equal highest score, independent of input order.
+    private static Long winner(Map&lt;Long, Long&gt; counts) {
+<span class="fc" id="L78">        return counts.keySet().stream()</span>
+<span class="fc" id="L79">                .min(Comparator.&lt;Long&gt;comparingLong(counts::get).reversed()</span>
+<span class="fc" id="L80">                        .thenComparingLong(Long::longValue)).orElseThrow();</span>
+    }
+
+    private static CountResult rankedChoice(List&lt;Long&gt; options, List&lt;List&lt;Long&gt;&gt; ballots) {
+<span class="fc" id="L84">        TreeSet&lt;Long&gt; active = new TreeSet&lt;&gt;(options);</span>
+<span class="fc" id="L85">        List&lt;CountResult.Round&gt; rounds = new ArrayList&lt;&gt;();</span>
+        while (true) {
+<span class="fc" id="L87">            Map&lt;Long, Long&gt; counts = zeroCounts(active);</span>
+<span class="fc" id="L88">            long exhausted = 0;</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">            for (List&lt;Long&gt; ballot : ballots) {</span>
+<span class="fc" id="L90">                Long choice = ballot.stream().filter(active::contains).findFirst().orElse(null);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">                if (choice == null) {</span>
+<span class="fc" id="L92">                    exhausted++;</span>
+                } else {
+<span class="fc" id="L94">                    counts.merge(choice, 1L, Long::sum);</span>
+                }
+<span class="fc" id="L96">            }</span>
+<span class="fc" id="L97">            long activeBallots = ballots.size() - exhausted;</span>
+<span class="fc" id="L98">            Long leader = winner(counts);</span>
+<span class="pc bpc" id="L99" title="1 of 4 branches missed.">            if (activeBallots == 0 || counts.get(leader) &gt; activeBallots / 2) {</span>
+<span class="fc" id="L100">                rounds.add(new CountResult.Round(</span>
+<span class="fc" id="L101">                        rounds.size() + 1, counts, activeBallots, exhausted, null));</span>
+<span class="fc" id="L102">                return new CountResult(</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">                        activeBallots == 0 ? null : leader, counts, ballots.size(), rounds);</span>
+            }
+            // On equal lowest counts, eliminate the highest ID, preserving lower-ID preference.
+<span class="fc" id="L106">            Long eliminated = active.stream()</span>
+<span class="fc" id="L107">                    .min(Comparator.&lt;Long&gt;comparingLong(counts::get)</span>
+<span class="fc" id="L108">                            .thenComparing(Comparator.reverseOrder())).orElseThrow();</span>
+<span class="fc" id="L109">            rounds.add(new CountResult.Round(</span>
+<span class="fc" id="L110">                    rounds.size() + 1, counts, activeBallots, exhausted, eliminated));</span>
+<span class="fc" id="L111">            active.remove(eliminated);</span>
+<span class="fc" id="L112">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="10.21.1">
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/Poll.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/Ballot.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/results/ResultsController.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/results/CountingAlgorithms.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/results/RankedBallotStore.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/results/RepositoryRankedBallotStore.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/results/CountResult.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/results/ResultsService.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/results/CountingMethod.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/PollApplication.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/BallotRepository.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/ApiKeyValidator.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/PollRepository.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/java/com/lecoders/poll/PollController.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/delete/DeletePollControllerTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/delete/DeletePollFlowTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/results/ResultsHttpTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/results/StorageAndAuthTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/results/ResultsServiceTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/results/CountingAlgorithmsTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/support/MockApiKeys.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/ballot/CastBallotControllerTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/ballot/BallotRepositoryTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/poll/PollRepositoryTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/java/com/lecoders/poll/poll/CreatePollControllerTest.java">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/main/resources/application.properties">
+</file>
+<file name="/Users/aliasgar/Desktop/ADV SWE/LeCoders-advSWE-proj/src/test/resources/application.properties">
+</file>
+</checkstyle>

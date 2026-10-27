@@ -16,7 +16,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Mocked repository tests distinguish bad requests from corrupt storage. AI-generated. */
+/**
+ * Mocked repository tests distinguish bad requests from corrupt storage.
+ *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
 @ExtendWith(MockitoExtension.class)
 class ResultsServiceTest {
     @Mock
