@@ -13,7 +13,11 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Tests snapshot isolation, stable IDs and fail-closed authentication. AI-generated. */
+/**
+ * Tests snapshot isolation, stable IDs and fail-closed authentication.
+ *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
 class StorageAndAuthTest {
     @Test
     void ballotsAreImmutableSnapshotsAndPollsAreIsolated() {

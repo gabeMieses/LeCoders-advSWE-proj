@@ -7,6 +7,7 @@ import java.util.Map;
 /**
  * Immutable calculation result; counts mean Borda points or votes.
  *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
  */
 public record CountResult(
         @JsonProperty("winning_option_id") Long winningOptionId,

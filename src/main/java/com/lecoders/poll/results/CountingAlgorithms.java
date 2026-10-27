@@ -11,6 +11,7 @@ import java.util.TreeSet;
 /**
  * Pure counting algorithms with deterministic numeric-ID ties.
  *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
  */
 public final class CountingAlgorithms {
     private CountingAlgorithms() {}

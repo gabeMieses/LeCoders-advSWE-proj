@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PollController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poll-service</a> &gt; <a href="index.source.html" class="el_package">com.lecoders.poll</a> &gt; <span class="el_source">PollController.java</span></div><h1>PollController.java</h1><pre class="source lang-java linenums">package com.lecoders.poll;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+/**
+ * REST endpoints for creating polls, casting ballots and deleting polls, using shared key
+ * validation and returning zero-based option IDs.
+ *
+ * &lt;p&gt;Shared API-key wiring, option-ID response adaptation and validation integration
+ * changes AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ * Original create, cast and delete implementations remain team contributions.
+ */
+@RestController
+public class PollController {
+
+<span class="fc" id="L29">    record CreatePollRequest(</span>
+            String question,
+            List&lt;String&gt; options,
+            @JsonProperty(&quot;counting_method&quot;) String countingMethod) {
+    }
+
+<span class="fc" id="L35">    record CastBallotRequest(</span>
+            @JsonProperty(&quot;voter_id&quot;) String voterId,
+            @JsonProperty(&quot;ranked_option_ids&quot;) List&lt;Integer&gt; rankedOptionIds) {
+    }
+
+<span class="fc" id="L40">    private static final Set&lt;String&gt; COUNTING_METHODS =</span>
+<span class="fc" id="L41">            Set.of(&quot;plurality&quot;, &quot;ranked_choice&quot;, &quot;borda&quot;);</span>
+
+    private final PollRepository polls;
+    private final BallotRepository ballots;
+    private final ApiKeyValidator apiKeys;
+
+    /**
+     * Creates the controller.
+     *
+     * @param polls repository used to store and look up polls
+     * @param ballots repository used to store ballots
+     * @param apiKeys validator for the configured client API keys
+     */
+    public PollController(
+<span class="fc" id="L55">            PollRepository polls, BallotRepository ballots, ApiKeyValidator apiKeys) {</span>
+<span class="fc" id="L56">        this.polls = polls;</span>
+<span class="fc" id="L57">        this.ballots = ballots;</span>
+<span class="fc" id="L58">        this.apiKeys = apiKeys;</span>
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * Creates a new poll owned by the calling client program.
+     *
+     * &lt;p&gt;AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
+     *
+     * @param apiKey API key of the client program
+     * @param request the poll's question, options and counting method
+     * @return the new poll's id and zero-based option ids
+     */
+    @PostMapping(&quot;/polls&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map&lt;String, Object&gt; createPoll(
+            @RequestHeader(value = &quot;X-API-Key&quot;, required = false) String apiKey,
+            @RequestBody CreatePollRequest request) {
+<span class="fc" id="L75">        apiKeys.requireValid(apiKey);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (isBlank(request.question())</span>
+<span class="fc bfc" id="L77" title="All 4 branches covered.">                || request.options() == null || request.options().size() &lt; 2</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">                || isBlank(request.countingMethod())</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">                || !COUNTING_METHODS.contains(request.countingMethod())</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">                || new HashSet&lt;&gt;(request.options()).size() != request.options().size()</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">                || request.options().stream().anyMatch(PollController::isBlank)) {</span>
+<span class="fc" id="L82">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+                    &quot;question, at least 2 distinct non-blank options, and a counting_method of &quot;
+                            + COUNTING_METHODS + &quot; are required&quot;);
+        }
+<span class="fc" id="L86">        Poll poll = polls.save(new Poll(</span>
+<span class="fc" id="L87">                null, request.question(), request.options(), apiKey, request.countingMethod()));</span>
+<span class="fc" id="L88">        return Map.of(&quot;poll_id&quot;, poll.id(), &quot;option_ids&quot;, poll.optionIds());</span>
+    }
+
+    /**
+     * Casts a ranked ballot on a poll. Option ids are the zero-based positions of the
+     * options in the list the poll was created with.
+     *
+     * &lt;p&gt;AI-generated with Claude Code (Opus 5.5); reviewed and tested by JB Diei.
+     *
+     * @param apiKey API key of the client program
+     * @param pollId id of the poll being voted on
+     * @param request the voter's id and ranked list of option ids
+     * @return the new ballot's id
+     */
+    @PostMapping(&quot;/polls/{pollId}/ballots&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map&lt;String, Object&gt; castBallot(
+            @RequestHeader(value = &quot;X-API-Key&quot;, required = false) String apiKey,
+            @PathVariable long pollId,
+            @RequestBody CastBallotRequest request) {
+<span class="fc" id="L108">        apiKeys.requireValid(apiKey);</span>
+<span class="fc" id="L109">        Poll poll = polls.findById(pollId)</span>
+<span class="fc" id="L110">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND,</span>
+                        &quot;unknown poll_id &quot; + pollId));
+        // TODO: reject ballots once the poll is closed, after polls store a closing time.
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (isBlank(request.voterId())) {</span>
+<span class="fc" id="L114">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;voter_id is required&quot;);</span>
+        }
+<span class="fc" id="L116">        validateRanking(request.rankedOptionIds(), poll.options().size());</span>
+<span class="fc" id="L117">        Ballot ballot = ballots.saveIfFirstVote(</span>
+<span class="fc" id="L118">                        new Ballot(null, pollId, request.voterId(), request.rankedOptionIds()))</span>
+<span class="fc" id="L119">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+<span class="fc" id="L120">                        &quot;voter &quot; + request.voterId() + &quot; has already voted on this poll&quot;));</span>
+<span class="fc" id="L121">        return Map.of(&quot;ballot_id&quot;, ballot.id());</span>
+    }
+
+    /**
+     * Deletes a poll and every ballot cast on it. Only the client program that created the
+     * poll may delete it. After deletion, casting a ballot on or deleting the same poll
+     * returns 404.
+     *
+     * &lt;p&gt;AI-generated with Claude Code (Opus 5.5); reviewed and tested by Jason Dixon.
+     *
+     * @param apiKey API key of the client program; must match the poll's creator
+     * @param pollId id of the poll to delete
+     * @return the deleted poll's id and how many ballots were removed with it
+     */
+    @DeleteMapping(&quot;/polls/{pollId}&quot;)
+    public Map&lt;String, Object&gt; deletePoll(
+            @RequestHeader(value = &quot;X-API-Key&quot;, required = false) String apiKey,
+            @PathVariable long pollId) {
+<span class="fc" id="L139">        apiKeys.requireValid(apiKey);</span>
+<span class="fc" id="L140">        Poll poll = polls.findById(pollId)</span>
+<span class="fc" id="L141">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND,</span>
+                        &quot;unknown poll_id &quot; + pollId));
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        if (!poll.apiKey().equals(apiKey)) {</span>
+<span class="fc" id="L144">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,</span>
+                    &quot;only the client program that created the poll may delete it&quot;);
+        }
+        // Remove the poll first so new ballots are rejected with 404 while its ballots
+        // are being cleared.
+<span class="fc" id="L149">        polls.deleteById(pollId);</span>
+<span class="fc" id="L150">        int ballotsDeleted = ballots.deleteByPollId(pollId);</span>
+<span class="fc" id="L151">        return Map.of(&quot;poll_id&quot;, pollId, &quot;ballots_deleted&quot;, ballotsDeleted);</span>
+    }
+
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by JB Diei.
+    private static void validateRanking(List&lt;Integer&gt; rankedOptionIds, int optionCount) {
+<span class="fc bfc" id="L156" title="All 4 branches covered.">        if (rankedOptionIds == null || rankedOptionIds.isEmpty()) {</span>
+<span class="fc" id="L157">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+                    &quot;ranked_option_ids must contain at least one option&quot;);
+        }
+<span class="fc" id="L160">        Set&lt;Integer&gt; seen = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        for (Integer optionId : rankedOptionIds) {</span>
+<span class="fc bfc" id="L162" title="All 6 branches covered.">            if (optionId == null || optionId &lt; 0 || optionId &gt;= optionCount) {</span>
+<span class="fc" id="L163">                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+                        &quot;unknown option id &quot; + optionId);
+            }
+<span class="fc bfc" id="L166" title="All 2 branches covered.">            if (!seen.add(optionId)) {</span>
+<span class="fc" id="L167">                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+                        &quot;option id &quot; + optionId + &quot; is ranked more than once&quot;);
+            }
+<span class="fc" id="L170">        }</span>
+<span class="fc" id="L171">    }</span>
+
+    private static boolean isBlank(String value) {
+<span class="fc bfc" id="L174" title="All 4 branches covered.">        return value == null || value.isBlank();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * GET results adapter; calculations have no write side effects.
  *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
  */
 @RestController
 public class ResultsController {

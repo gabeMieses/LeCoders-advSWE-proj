@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * Configurable shared key check; no hard-coded production keys.
  *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
  */
 @Component
 public class ApiKeyValidator {

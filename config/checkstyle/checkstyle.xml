@@ -22,6 +22,9 @@
       https://github.com/checkstyle/checkstyle/blob/checkstyle-10.21.1/src/main/resources/google_checks.xml
     License: LGPL-2.1 (Checkstyle project).
     Only change: Indentation module uses 4 spaces (see "LeCoders modification" below).
+
+    Adaptation (4-space Indentation and this LeCoders header) AI-generated with
+    Cursor Agent (Claude Opus 5); reviewed and tested by Aliasgar Sakarwala (as8199).
 -->
 <module name="Checker">
 

@@ -3,6 +3,7 @@ package com.lecoders.poll.results;
 /**
  * Supported, case-sensitive wire values.
  *
+ * <p>AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
  */
 public enum CountingMethod {
     PLURALITY("plurality"),

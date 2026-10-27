@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Poll.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poll-service</a> &gt; <a href="index.source.html" class="el_package">com.lecoders.poll</a> &gt; <span class="el_source">Poll.java</span></div><h1>Poll.java</h1><pre class="source lang-java linenums">package com.lecoders.poll;
+
+import java.util.List;
+import java.util.stream.LongStream;
+
+/**
+ * A poll created by a client program.
+ *
+ * &lt;p&gt;AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
+ *
+ * @param id unique poll id, or null before the poll is saved
+ * @param question the question the poll asks
+ * @param options the answer options voters can rank
+ * @param apiKey API key of the client program that created the poll
+ * @param countingMethod the counting method requested for the poll
+ */
+public record Poll(
+        Long id, String question, List&lt;String&gt; options, String apiKey, String countingMethod) {
+
+    /**
+     * Protects the zero-based option positions used by ballot POST.
+     *
+     */
+<span class="fc" id="L24">    public Poll {</span>
+<span class="fc" id="L25">        options = List.copyOf(options);</span>
+<span class="fc" id="L26">    }</span>
+
+    /**
+     * Matches the team's zero-based option IDs, 0 through N-1.
+     *
+     */
+    public List&lt;Long&gt; optionIds() {
+<span class="fc" id="L33">        return LongStream.range(0, options.size()).boxed().toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

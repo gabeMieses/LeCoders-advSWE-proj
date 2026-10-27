@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RepositoryRankedBallotStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poll-service</a> &gt; <a href="index.source.html" class="el_package">com.lecoders.poll.results</a> &gt; <span class="el_source">RepositoryRankedBallotStore.java</span></div><h1>RepositoryRankedBallotStore.java</h1><pre class="source lang-java linenums">package com.lecoders.poll.results;
+
+import com.lecoders.poll.BallotRepository;
+import java.util.List;
+import org.springframework.stereotype.Component;
+
+/**
+ * Reads the same repository used by ballot POST.
+ *
+ * &lt;p&gt;AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
+ */
+@Component
+public class RepositoryRankedBallotStore implements RankedBallotStore {
+    private final BallotRepository ballots;
+
+    /** Adapts the team's Integer option IDs to the counting module's numeric IDs. */
+<span class="fc" id="L17">    public RepositoryRankedBallotStore(BallotRepository ballots) {</span>
+<span class="fc" id="L18">        this.ballots = ballots;</span>
+<span class="fc" id="L19">    }</span>
+
+    @Override
+    public List&lt;List&lt;Long&gt;&gt; findRankings(long pollId) {
+<span class="fc" id="L23">        return ballots.findByPollId(pollId).stream()</span>
+<span class="fc" id="L24">                .map(ballot -&gt; ballot.rankedOptionIds().stream().map(Integer::longValue).toList())</span>
+<span class="fc" id="L25">                .toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

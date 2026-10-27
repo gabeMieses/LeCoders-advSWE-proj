@@ -1,0 +1,2151 @@
+{
+  "info": {
+    "_postman_id": "7c1f0e2a-9b4d-4a1e-8f3c-2d5e6a7b8c90",
+    "name": "LeCoders poll-service",
+    "description": "AI-generated (Cursor Agent, Claude Opus 5); reviewed by Aliasgar Sakarwala.\n\nAPI tests for the LeCoders poll-service. One folder per endpoint, each covering the success path and every misuse case documented in docs/API.md.\n\nRun top to bottom against a freshly started server (`mvn spring-boot:run`): the create-poll folder stores every poll_id it needs in collection variables, and later folders depend on those values and on the ballots cast earlier, so requests must not be reordered or run individually.\n\nUse the postman/local.postman_environment.json environment, or set baseUrl, apiKey and otherApiKey yourself. apiKey and otherApiKey must both appear in the poll.api-keys list in src/main/resources/application.properties.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "mainPollId",
+      "value": "",
+      "description": "3-option plurality poll that receives the five scenario ballots"
+    },
+    {
+      "key": "rcPollId",
+      "value": "",
+      "description": "3-option ranked-choice poll whose count needs two rounds"
+    },
+    {
+      "key": "emptyPollId",
+      "value": "",
+      "description": "2-option poll that is never voted on"
+    },
+    {
+      "key": "misusePollId",
+      "value": "",
+      "description": "2-option poll used as the target of the ballot misuse cases"
+    },
+    {
+      "key": "bigPollId",
+      "value": "",
+      "description": "5-option poll, the source of the out-of-range option id 4"
+    },
+    {
+      "key": "deletePollId",
+      "value": "",
+      "description": "2-option poll with one ballot, deleted by its owner"
+    },
+    {
+      "key": "unknownPollId",
+      "value": "999999",
+      "description": "A poll id that is never created"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Create poll (POST /polls)",
+      "description": "Creates every poll the later folders use, then exercises each documented failure of POST /polls.",
+      "item": [
+        {
+          "name": "201 create poll (success) -> mainPollId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"returns poll_id and zero-based option_ids\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.poll_id).to.be.a(\"number\");",
+                  "    pm.expect(body.option_ids).to.eql([0, 1, 2]);",
+                  "    pm.collectionVariables.set(\"mainPollId\", body.poll_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"What should we eat for the team lunch?\",\"options\":[\"Tacos\",\"Pizza\",\"Sushi\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "The happy path: question, three distinct options and a supported counting method."
+          }
+        },
+        {
+          "name": "201 create ranked-choice poll -> rcPollId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"stores the poll id for the two-round scenario\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.option_ids).to.eql([0, 1, 2]);",
+                  "    pm.collectionVariables.set(\"rcPollId\", body.poll_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Which office snack should we stock?\",\"options\":[\"Chips\",\"Fruit\",\"Cookies\"],\"counting_method\":\"ranked_choice\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "201 create poll that is never voted on -> emptyPollId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"two options, stored for the no-ballots result\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.option_ids).to.eql([0, 1]);",
+                  "    pm.collectionVariables.set(\"emptyPollId\", body.poll_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Nobody voted yet?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "201 create ballot-misuse target -> misusePollId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"two options, so option id 2 and above are out of range\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.option_ids).to.eql([0, 1]);",
+                  "    pm.collectionVariables.set(\"misusePollId\", body.poll_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Misuse target?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "201 create five-option poll -> bigPollId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"option ids run 0..4, so id 4 exists only here\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.option_ids).to.eql([0, 1, 2, 3, 4]);",
+                  "    pm.collectionVariables.set(\"bigPollId\", body.poll_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Five option poll?\",\"options\":[\"A\",\"B\",\"C\",\"D\",\"E\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "201 create delete target owned by apiKey -> deletePollId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"stores the poll id the delete folder removes\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.poll_id).to.be.a(\"number\");",
+                  "    pm.collectionVariables.set(\"deletePollId\", body.poll_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Owned by client 1?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "401 no API key header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test(\"standard error body for /polls\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(401);",
+                  "    pm.expect(body.error).to.eql(\"Unauthorized\");",
+                  "    pm.expect(body.path).to.eql(\"/polls\");",
+                  "});",
+                  "",
+                  "pm.test(\"no poll was created\", () => {",
+                  "    pm.expect(pm.response.json()).to.not.have.property(\"poll_id\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "X-API-Key is required on every endpoint, and is checked before anything else."
+          }
+        },
+        {
+          "name": "401 unrecognised API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql(\"Unauthorized\");",
+                  "    pm.expect(body.path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "not-a-real-key" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "Keys must match an entry in poll.api-keys exactly."
+          }
+        },
+        {
+          "name": "401 whitespace-only API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "   " },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "400 fewer than two options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"standard error body for /polls\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(400);",
+                  "    pm.expect(body.error).to.eql(\"Bad Request\");",
+                  "    pm.expect(body.path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"Only one\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "An election needs at least two choices."
+          }
+        },
+        {
+          "name": "400 duplicate options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Bad Request\");",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"Tacos\",\"Tacos\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "Two identical labels would produce two option ids meaning the same thing."
+          }
+        },
+        {
+          "name": "400 blank option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"A\",\" \"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "400 missing question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"options\":[\"A\",\"B\"],\"counting_method\":\"plurality\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "400 unsupported counting_method",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"approval\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "Only plurality, ranked_choice and borda are implemented."
+          }
+        },
+        {
+          "name": "400 missing counting_method",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"A\",\"B\"]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "400 malformed JSON body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Bad Request\");",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls"
+          }
+        },
+        {
+          "name": "201 unknown closing_time field is ignored",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"the poll is created and the unknown field is dropped\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.poll_id).to.be.a(\"number\");",
+                  "    pm.expect(body).to.not.have.property(\"closing_time\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Closes soon?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"borda\",\"closing_time\":\"2026-12-01T00:00:00Z\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "Closing times are not implemented, so the field is silently ignored rather than rejected."
+          }
+        },
+        {
+          "name": "415 body without Content-Type: application/json",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 415 Unsupported Media Type\", () => pm.response.to.have.status(415));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql(\"Unsupported Media Type\");",
+                  "    pm.expect(body.path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"Q?\",\"options\":[\"A\",\"B\"],\"counting_method\":\"borda\"}",
+              "options": { "raw": { "language": "text" } }
+            },
+            "url": "{{baseUrl}}/polls",
+            "description": "Reproduces `curl -d` with no explicit Content-Type, which sends application/x-www-form-urlencoded."
+          }
+        },
+        {
+          "name": "405 GET /polls",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 405 Method Not Allowed\", () => pm.response.to.have.status(405));",
+                  "",
+                  "pm.test(\"error body names /polls\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql(\"Method Not Allowed\");",
+                  "    pm.expect(body.path).to.eql(\"/polls\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls",
+            "description": "There is no endpoint that lists polls."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Cast ballot (POST /polls/{pollId}/ballots)",
+      "description": "Casts the ballots the results folder counts, then exercises each documented failure of POST /polls/{pollId}/ballots.",
+      "item": [
+        {
+          "name": "201 ballot 1/5 on mainPoll - alice [0,1,2]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"returns a numeric ballot_id\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"alice\",\"ranked_option_ids\":[0,1,2]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 ballot 2/5 on mainPoll - bob [1,0,2]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"returns a numeric ballot_id\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"bob\",\"ranked_option_ids\":[1,0,2]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 ballot 3/5 on mainPoll - carol [1,2,0]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"returns a numeric ballot_id\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"carol\",\"ranked_option_ids\":[1,2,0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 ballot 4/5 on mainPoll - dave [2,1,0]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"returns a numeric ballot_id\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"dave\",\"ranked_option_ids\":[2,1,0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 ballot 5/5 on mainPoll - erin [1,0,2]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"returns a numeric ballot_id\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"erin\",\"ranked_option_ids\":[1,0,2]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 rcPoll ballot - v1 [0,1] (partial ranking)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"a partial ranking is accepted\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[0,1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{rcPollId}}/ballots",
+            "description": "A ranking does not have to list every option."
+          }
+        },
+        {
+          "name": "201 rcPoll ballot - v2 [0]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v2\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{rcPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 rcPoll ballot - v3 [1]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v3\",\"ranked_option_ids\":[1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{rcPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 rcPoll ballot - v4 [1]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v4\",\"ranked_option_ids\":[1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{rcPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 rcPoll ballot - v5 [2,1] (transfers in round 2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v5\",\"ranked_option_ids\":[2,1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{rcPollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 one ballot on the delete target",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"one ballot exists, so ballots_deleted will be 1\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"d1\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{deletePollId}}/ballots"
+          }
+        },
+        {
+          "name": "401 no API key header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test(\"error body names the ballots path\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql(\"Unauthorized\");",
+                  "    pm.expect(body.path).to.eql(`/polls/${pm.collectionVariables.get(\"misusePollId\")}/ballots`);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "404 unknown poll id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404 Not Found\", () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test(\"error body names the unknown poll\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql(\"Not Found\");",
+                  "    pm.expect(body.path).to.eql(\"/polls/999999/ballots\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{unknownPollId}}/ballots"
+          }
+        },
+        {
+          "name": "400 option id out of range for this poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names the ballots path\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(400);",
+                  "    pm.expect(body.path).to.include(\"/ballots\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[4]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots",
+            "description": "Option id 4 exists on the five-option poll but is out of range for this two-option poll."
+          }
+        },
+        {
+          "name": "400 same option ranked twice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names the ballots path\", () => {",
+                  "    pm.expect(pm.response.json().path).to.include(\"/ballots\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[0,1,0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots",
+            "description": "A ranking is an ordering of distinct preferences."
+          }
+        },
+        {
+          "name": "400 negative option id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[-1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "400 empty ranking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "400 missing ranked_option_ids",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "400 missing voter_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "201 first ballot from voter dup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"the rejected ballots above did not consume this voter's vote\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"dup\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "400 same voter_id voting twice on this poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names the ballots path\", () => {",
+                  "    pm.expect(pm.response.json().path).to.include(\"/ballots\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"dup\",\"ranked_option_ids\":[1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots",
+            "description": "One ballot per voter_id per poll."
+          }
+        },
+        {
+          "name": "201 another client's key may vote on this poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"ownership does not restrict voting\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{otherApiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"other-client-voter\",\"ranked_option_ids\":[1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots",
+            "description": "This poll was created by apiKey, but any configured key may cast ballots on it."
+          }
+        },
+        {
+          "name": "400 non-numeric poll id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names the unparseable path\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls/abc/ballots\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/abc/ballots"
+          }
+        },
+        {
+          "name": "400 malformed JSON body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "415 body without Content-Type: application/json",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 415 Unsupported Media Type\", () => pm.response.to.have.status(415));",
+                  "",
+                  "pm.test(\"error body names the ballots path\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Unsupported Media Type\");",
+                  "    pm.expect(pm.response.json().path).to.include(\"/ballots\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"v1\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "text" } }
+            },
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots"
+          }
+        },
+        {
+          "name": "405 DELETE the ballots path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 405 Method Not Allowed\", () => pm.response.to.have.status(405));",
+                  "",
+                  "pm.test(\"error body names the ballots path\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Method Not Allowed\");",
+                  "    pm.expect(pm.response.json().path).to.include(\"/ballots\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/ballots",
+            "description": "Individual ballots cannot be withdrawn."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Get results (GET /polls/{pollId}/results)",
+      "description": "Counts the ballots cast in folder 2 under all three methods, then exercises each documented failure of GET /polls/{pollId}/results.",
+      "item": [
+        {
+          "name": "200 plurality on mainPoll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Pizza (option 1) wins with 3 of 5 first choices\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.poll_id).to.eql(Number(pm.collectionVariables.get(\"mainPollId\")));",
+                  "    pm.expect(body.counting_method).to.eql(\"plurality\");",
+                  "    pm.expect(body.winning_option_id).to.eql(1);",
+                  "    pm.expect(body.counts).to.eql({ \"0\": 1, \"1\": 3, \"2\": 1 });",
+                  "    pm.expect(body.total_ballots).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test(\"rounds is empty for plurality\", () => {",
+                  "    pm.expect(pm.response.json().rounds).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=plurality"
+          }
+        },
+        {
+          "name": "200 borda on mainPoll (stored method is ignored)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"borda points are returned even though the poll was created as plurality\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.counting_method).to.eql(\"borda\");",
+                  "    pm.expect(body.winning_option_id).to.eql(1);",
+                  "    pm.expect(body.counts).to.eql({ \"0\": 4, \"1\": 8, \"2\": 3 });",
+                  "    pm.expect(body.total_ballots).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=borda",
+            "description": "The query parameter decides the method; the poll's own counting_method is never read."
+          }
+        },
+        {
+          "name": "200 ranked_choice on mainPoll (immediate majority)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"one round is enough, so nothing is eliminated\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.winning_option_id).to.eql(1);",
+                  "    pm.expect(body.rounds).to.have.lengthOf(1);",
+                  "    pm.expect(body.rounds[0].round).to.eql(1);",
+                  "    pm.expect(body.rounds[0].active_ballots).to.eql(5);",
+                  "    pm.expect(body.rounds[0].exhausted_ballots).to.eql(0);",
+                  "    pm.expect(body.rounds[0].eliminated_option_id).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=ranked_choice"
+          }
+        },
+        {
+          "name": "200 ranked_choice on rcPoll (two rounds)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"round 1 splits 2-2-1 and eliminates option 2\", () => {",
+                  "    const rounds = pm.response.json().rounds;",
+                  "    pm.expect(rounds).to.have.lengthOf(2);",
+                  "    pm.expect(rounds[0].counts).to.eql({ \"0\": 2, \"1\": 2, \"2\": 1 });",
+                  "    pm.expect(rounds[0].eliminated_option_id).to.eql(2);",
+                  "});",
+                  "",
+                  "pm.test(\"round 2 transfers v5's vote to option 1, which wins 3 of 5\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.rounds[1].counts).to.eql({ \"0\": 2, \"1\": 3 });",
+                  "    pm.expect(body.rounds[1].eliminated_option_id).to.eql(null);",
+                  "    pm.expect(body.winning_option_id).to.eql(1);",
+                  "    pm.expect(body.total_ballots).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test(\"top-level counts omits the eliminated option\", () => {",
+                  "    pm.expect(pm.response.json().counts).to.eql({ \"0\": 2, \"1\": 3 });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{rcPollId}}/results?counting_method=ranked_choice"
+          }
+        },
+        {
+          "name": "200 plurality on rcPoll (different winner, tie on lowest id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"first choices tie 2-2 and the lower option id wins\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.counts).to.eql({ \"0\": 2, \"1\": 2, \"2\": 1 });",
+                  "    pm.expect(body.winning_option_id).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test(\"the counting method changes the winner on the same ballots\", () => {",
+                  "    pm.expect(pm.response.json().winning_option_id).to.not.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{rcPollId}}/results?counting_method=plurality"
+          }
+        },
+        {
+          "name": "200 poll with no ballots",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK, not an error\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"no winner, every option zero, no rounds\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.winning_option_id).to.eql(null);",
+                  "    pm.expect(body.counts).to.eql({ \"0\": 0, \"1\": 0 });",
+                  "    pm.expect(body.total_ballots).to.eql(0);",
+                  "    pm.expect(body.rounds).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{emptyPollId}}/results?counting_method=ranked_choice"
+          }
+        },
+        {
+          "name": "200 another client's key may read results",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"counts the two ballots the misuse folder left behind\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total_ballots).to.eql(2);",
+                  "    pm.expect(body.counts).to.eql({ \"0\": 1, \"1\": 1 });",
+                  "    pm.expect(body.winning_option_id).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{otherApiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{misusePollId}}/results?counting_method=plurality",
+            "description": "Ownership does not restrict reading results."
+          }
+        },
+        {
+          "name": "401 no API key header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test(\"error body names the results path\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Unauthorized\");",
+                  "    pm.expect(pm.response.json().path).to.include(\"/results\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=plurality"
+          }
+        },
+        {
+          "name": "400 unsupported counting_method",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names the results path\", () => {",
+                  "    pm.expect(pm.response.json().status).to.eql(400);",
+                  "    pm.expect(pm.response.json().path).to.include(\"/results\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=approval"
+          }
+        },
+        {
+          "name": "400 counting_method is case-sensitive",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"PLURALITY is not accepted\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Bad Request\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=PLURALITY"
+          }
+        },
+        {
+          "name": "400 missing counting_method",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"there is no default counting method\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Bad Request\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results"
+          }
+        },
+        {
+          "name": "400 empty counting_method",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method="
+          }
+        },
+        {
+          "name": "404 unknown poll id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404 Not Found\", () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test(\"error body names the unknown poll\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls/999999/results\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{unknownPollId}}/results?counting_method=plurality"
+          }
+        },
+        {
+          "name": "400 unknown poll AND bad method (method checked first)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400, not 404\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"the method is validated before the poll is looked up\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(400);",
+                  "    pm.expect(body.path).to.eql(\"/polls/999999/results\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{unknownPollId}}/results?counting_method=approval"
+          }
+        },
+        {
+          "name": "400 non-numeric poll id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names the unparseable path\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls/abc/results\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/abc/results?counting_method=plurality"
+          }
+        },
+        {
+          "name": "405 POST to the results path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 405 Method Not Allowed\", () => pm.response.to.have.status(405));",
+                  "",
+                  "pm.test(\"error body names the results path\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Method Not Allowed\");",
+                  "    pm.expect(pm.response.json().path).to.include(\"/results\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=plurality",
+            "description": "Results are read-only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Delete poll (DELETE /polls/{pollId})",
+      "description": "Exercises ownership, then deletes a poll and confirms every later call on it returns 404. Runs last because the deletions are permanent.",
+      "item": [
+        {
+          "name": "401 delete another client's poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test(\"a valid key that does not own the poll is refused\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql(\"Unauthorized\");",
+                  "    pm.expect(body.path).to.eql(`/polls/${pm.collectionVariables.get(\"deletePollId\")}`);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-API-Key", "value": "{{otherApiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{deletePollId}}",
+            "description": "Only the key that created the poll may delete it."
+          }
+        },
+        {
+          "name": "401 delete with no API key header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 Unauthorized\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/polls/{{deletePollId}}"
+          }
+        },
+        {
+          "name": "201 the refused delete left the poll usable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"a ballot can still be cast, so nothing was deleted\", () => {",
+                  "    pm.expect(pm.response.json().ballot_id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"d2\",\"ranked_option_ids\":[1]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{deletePollId}}/ballots"
+          }
+        },
+        {
+          "name": "404 delete unknown poll id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404 Not Found\", () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test(\"error body names the unknown poll\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls/999999\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{unknownPollId}}"
+          }
+        },
+        {
+          "name": "400 non-numeric poll id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"error body names the unparseable path\", () => {",
+                  "    pm.expect(pm.response.json().path).to.eql(\"/polls/abc\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/abc"
+          }
+        },
+        {
+          "name": "405 PUT /polls/{pollId}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 405 Method Not Allowed\", () => pm.response.to.have.status(405));",
+                  "",
+                  "pm.test(\"polls cannot be updated\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Method Not Allowed\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{deletePollId}}"
+          }
+        },
+        {
+          "name": "200 delete by the creating key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"reports the poll id and how many ballots went with it\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.poll_id).to.eql(Number(pm.collectionVariables.get(\"deletePollId\")));",
+                  "    pm.expect(body.ballots_deleted).to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{deletePollId}}"
+          }
+        },
+        {
+          "name": "404 results on the deleted poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404 Not Found\", () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test(\"error body names the deleted poll's results path\", () => {",
+                  "    pm.expect(pm.response.json().path).to.include(\"/results\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{deletePollId}}/results?counting_method=plurality"
+          }
+        },
+        {
+          "name": "404 cast a ballot on the deleted poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"voter_id\":\"frank\",\"ranked_option_ids\":[0]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/polls/{{deletePollId}}/ballots"
+          }
+        },
+        {
+          "name": "404 delete the same poll again",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404 Not Found\", () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test(\"poll ids are never reused\", () => {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Not Found\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{deletePollId}}"
+          }
+        },
+        {
+          "name": "200 other polls are untouched",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"mainPoll still has all five of its ballots\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total_ballots).to.eql(5);",
+                  "    pm.expect(body.winning_option_id).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/polls/{{mainPollId}}/results?counting_method=plurality"
+          }
+        }
+      ]
+    }
+  ]
+}

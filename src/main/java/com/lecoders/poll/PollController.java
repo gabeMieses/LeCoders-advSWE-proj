@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Shared key validation and returned zero-based option IDs.
- * REST endpoints for creating polls, casting ballots, counting results and deleting polls.
+ * REST endpoints for creating polls, casting ballots and deleting polls, using shared key
+ * validation and returning zero-based option IDs.
  *
  * <p>Shared API-key wiring, option-ID response adaptation and validation integration
  * changes AI-generated with OpenAI Codex; integration tested by Haoran (@lek1ma).
@@ -49,6 +49,7 @@ public class PollController {
      *
      * @param polls repository used to store and look up polls
      * @param ballots repository used to store ballots
+     * @param apiKeys validator for the configured client API keys
      */
     public PollController(
             PollRepository polls, BallotRepository ballots, ApiKeyValidator apiKeys) {
