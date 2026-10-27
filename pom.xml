@@ -3,6 +3,9 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <!-- Project skeleton (parent, coordinates, web starter, Spring Boot plugin) AI-generated
+         with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
+         Checkstyle, JaCoCo and test dependencies were added later in the tooling PR. -->
 
     <parent>
         <groupId>org.springframework.boot</groupId>

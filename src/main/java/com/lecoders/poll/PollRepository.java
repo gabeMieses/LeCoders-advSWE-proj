@@ -18,6 +18,8 @@ public class PollRepository {
     /**
      * Saves a poll, assigning a new id if it does not have one yet.
      *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
+     *
      * @param poll the poll to save
      * @return the saved poll with its id set
      */

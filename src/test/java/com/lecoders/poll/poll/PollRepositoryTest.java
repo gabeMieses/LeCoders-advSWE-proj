@@ -21,6 +21,7 @@ class PollRepositoryTest {
         return new Poll(null, question, List.of("A", "B"), "key", "borda");
     }
 
+    // AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
     @Test
     void save_newPoll_assignsIdAndKeepsFields() {
         Poll saved = polls.save(newPoll("Q?"));
