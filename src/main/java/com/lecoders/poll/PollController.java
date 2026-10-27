@@ -60,6 +60,8 @@ public class PollController {
     /**
      * Creates a new poll owned by the calling client program.
      *
+     * <p>AI-generated with Claude Code (Opus 5.5); reviewed and tested by Gabriel Mieses.
+     *
      * @param apiKey API key of the client program
      * @param request the poll's question, options and counting method
      * @return the new poll's id and zero-based option ids
